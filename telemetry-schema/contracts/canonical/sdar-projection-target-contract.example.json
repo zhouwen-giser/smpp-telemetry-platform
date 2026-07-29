@@ -1,0 +1,24 @@
+{
+  "targetId": "sdar-warehouse-prod",
+  "targetType": "sdar_shared_warehouse",
+  "acceptedCanonicalEnvelope": ">=1.0.0 <2.0.0",
+  "acceptedProjectionSets": [
+    "core-runtime-v1",
+    "core-task-v1",
+    "core-provider-v1",
+    "core-relation-v1"
+  ],
+  "idempotencyKey": [
+    "fact_id",
+    "projection_id",
+    "projection_version"
+  ],
+  "deliveryMode": "at-least-once",
+  "requiredProvenance": [
+    "source_system",
+    "source_record_id",
+    "source_record_hash",
+    "normalizer_id",
+    "normalizer_version"
+  ]
+}

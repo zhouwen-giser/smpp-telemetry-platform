@@ -1,0 +1,107 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.3
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
+    secrets: [clickhouse_password]
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./telemetry-schema/migrations:/docker-entrypoint-initdb.d:ro
+    ports: ["${CLICKHOUSE_HTTP_PORT:-8123}:8123", "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'clickhouse-client --password "$$(cat /run/secrets/clickhouse_password)" --query "SELECT 1"'
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  telemetry-processor:
+    build:
+      context: .
+      dockerfile: telemetry-processor/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    environment:
+      PROCESSOR_HOST: 0.0.0.0
+      PROCESSOR_PORT: 8443
+      PROCESSOR_ADMIN_API_KEY_FILE: /run/secrets/processor_admin_key
+      PROCESSOR_REQUIRE_COLLECTOR_ID: "true"
+      PROCESSOR_ALLOWED_COLLECTOR_IDS: ${COLLECTOR_ID:-smpp-gateway-1}
+      WAL_DIR: /var/lib/smpp-telemetry/wal
+      SOURCE_MAPPINGS_FILE: /app/config/source-mappings.json
+      PROJECTION_TARGETS_FILE: /app/config/projection-targets.json
+      EXPORT_INTERVAL_MS: 500
+    secrets: [clickhouse_password, processor_admin_key]
+    volumes:
+      - processor-wal:/var/lib/smpp-telemetry/wal
+      - ./config/generated/source-mappings.json:/app/config/source-mappings.json:ro
+      - ./config/projection-targets.example.json:/app/config/projection-targets.json:ro
+    expose: ["8443"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8443/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.157.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    environment:
+      SMPP_DEPLOYMENT_ID: ${SMPP_DEPLOYMENT_ID:-development}
+      COLLECTOR_ID: ${COLLECTOR_ID:-smpp-gateway-1}
+      TRUST_DOMAIN: ${TRUST_DOMAIN:-local-compose}
+    depends_on:
+      telemetry-processor: { condition: service_healthy }
+    volumes:
+      - ./telemetry-collector/config/gateway.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports: ["${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_PORT:-4318}:4318", "13133:13133", "8888:8888"]
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  query-api:
+    build:
+      context: .
+      dockerfile: telemetry-dashboard/query-api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    environment:
+      QUERY_API_HOST: 0.0.0.0
+      QUERY_API_PORT: 8088
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
+    secrets: [clickhouse_password]
+    ports: ["${QUERY_API_PORT:-8088}:8088"]
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    depends_on: [clickhouse]
+    environment:
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./telemetry-dashboard/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./telemetry-dashboard/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["${GRAFANA_PORT:-3000}:3000"]
+
+secrets:
+  clickhouse_password:
+    file: ./secrets/clickhouse_password.txt
+  processor_admin_key:
+    file: ./secrets/processor_admin_key.txt
+volumes:
+  clickhouse-data:
+  processor-wal:
+  grafana-data:

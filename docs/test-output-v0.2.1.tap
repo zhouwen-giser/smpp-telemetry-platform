@@ -1,0 +1,128 @@
+
+> smpp-telemetry-platform@0.2.1 test
+> node --test telemetry-processor/test/*.test.mjs telemetry-collector/tests/*.test.mjs telemetry-dashboard/query-api/test/*.test.mjs telemetry-schema/tools/*.test.mjs
+
+TAP version 13
+# Subtest: official collector config preserves strict Processor ACK path
+ok 1 - official collector config preserves strict Processor ACK path
+  ---
+  duration_ms: 3.210474
+  type: 'test'
+  ...
+# Subtest: query API reads serving topology
+ok 2 - query API reads serving topology
+  ---
+  duration_ms: 22.725012
+  type: 'test'
+  ...
+# Subtest: query API optional key is enforced
+ok 3 - query API optional key is enforced
+  ---
+  duration_ms: 5.53224
+  type: 'test'
+  ...
+# Subtest: canonical JSON sorts keys
+ok 4 - canonical JSON sorts keys
+  ---
+  duration_ms: 0.627792
+  type: 'test'
+  ...
+# Subtest: provider hash excludes delivery metadata
+ok 5 - provider hash excludes delivery metadata
+  ---
+  duration_ms: 0.733239
+  type: 'test'
+  ...
+# Subtest: uuid v5 is deterministic
+ok 6 - uuid v5 is deterministic
+  ---
+  duration_ms: 0.183142
+  type: 'test'
+  ...
+# Subtest: normalizer emits canonical fact and source-neutral provenance
+ok 7 - normalizer emits canonical fact and source-neutral provenance
+  ---
+  duration_ms: 1.716157
+  type: 'test'
+  ...
+# Subtest: 2 SDAR x 2 SMPP relations remain distinct N:N facts
+ok 8 - 2 SDAR x 2 SMPP relations remain distinct N:N facts
+  ---
+  duration_ms: 0.820878
+  type: 'test'
+  ...
+# Subtest: internal OTLP JSON reaches Processor WAL before success
+ok 9 - internal OTLP JSON reaches Processor WAL before success
+  ---
+  duration_ms: 45.014658
+  type: 'test'
+  ...
+# Subtest: accept, duplicate and conflict
+ok 10 - accept, duplicate and conflict
+  ---
+  duration_ms: 20.48321
+  type: 'test'
+  ...
+# Subtest: rejects forged collector identity
+ok 11 - rejects forged collector identity
+  ---
+  duration_ms: 5.58029
+  type: 'test'
+  ...
+# Subtest: rejects secrets before WAL
+ok 12 - rejects secrets before WAL
+  ---
+  duration_ms: 5.203672
+  type: 'test'
+  ...
+# Subtest: target failures do not stop independent target checkpoints
+ok 13 - target failures do not stop independent target checkpoints
+  ---
+  duration_ms: 16.196584
+  type: 'test'
+  ...
+# Subtest: WAL has independent checkpoints
+ok 14 - WAL has independent checkpoints
+  ---
+  duration_ms: 19.633975
+  type: 'test'
+  ...
+# Subtest: WAL recovers and truncates partial tail
+ok 15 - WAL recovers and truncates partial tail
+  ---
+  duration_ms: 4.974662
+  type: 'test'
+  ...
+# Subtest: one-click deployment assets exist and include all containers
+ok 16 - one-click deployment assets exist and include all containers
+  ---
+  duration_ms: 3.208661
+  type: 'test'
+  ...
+# Subtest: projection target output includes standalone and SDAR shadow targets
+ok 17 - projection target output includes standalone and SDAR shadow targets
+  ---
+  duration_ms: 1.515078
+  type: 'test'
+  ...
+# Subtest: core schema is source-neutral and N:N relation has no unique binding
+ok 18 - core schema is source-neutral and N:N relation has no unique binding
+  ---
+  duration_ms: 3.081392
+  type: 'test'
+  ...
+# Subtest: warehouse layers are created
+ok 19 - warehouse layers are created
+  ---
+  duration_ms: 1.177678
+  type: 'test'
+  ...
+1..19
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 214.209434

@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: SMPP Telemetry
+    folder: SMPP Telemetry
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

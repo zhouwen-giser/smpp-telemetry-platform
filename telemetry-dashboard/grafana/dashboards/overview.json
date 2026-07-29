@@ -1,0 +1,47 @@
+{
+  "title": "SMPP Telemetry Overview",
+  "uid": "smpp-telemetry-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "table",
+      "title": "Provider activity",
+      "datasource": {
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "query": "SELECT * FROM telemetry_serving.provider_activity_summary ORDER BY last_occurred_at DESC LIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "table",
+      "title": "SDAR–SMPP topology",
+      "datasource": {
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "query": "SELECT * FROM telemetry_serving.sdar_smpp_execution_topology ORDER BY valid_from DESC LIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      }
+    }
+  ]
+}

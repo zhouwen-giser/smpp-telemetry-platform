@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdar.io/schemas/provider-ops-envelope-1.1.0.json",
+  "title": "SMPP ProviderOpsEnvelope 1.1.0",
+  "type": "object",
+  "required": [
+    "schemaName",
+    "schemaVersion",
+    "recordId",
+    "recordHash",
+    "recordType",
+    "eventCategory",
+    "deliveryClass",
+    "providerId",
+    "runtimeVersion",
+    "instanceId",
+    "occurredAt",
+    "emittedAt",
+    "attributes",
+    "payload"
+  ],
+  "properties": {
+    "schemaName": {
+      "const": "sdar.provider.ops.event"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\."
+    },
+    "recordId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "recordHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "recordType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "eventCategory": {
+      "type": "string",
+      "enum": [
+        "audit",
+        "diagnostic"
+      ]
+    },
+    "deliveryClass": {
+      "type": "string",
+      "enum": [
+        "durable",
+        "best_effort"
+      ]
+    },
+    "providerId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "runtimeVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "instanceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "taskId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "resourceId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "resourceType": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "externalExecutionId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "operationName": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "correlationId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "traceId": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "spanId": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "providerEventId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "providerEventSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "eventType": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "executionMode": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "simulationId": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "argumentHash": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "authorizationContextHash": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "adapterRevision": {
+      "type": "string",
+      "maxLength": 128
+    },
+    "observationRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "commandSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "emittedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attributes": {
+      "type": "object"
+    },
+    "payload": {}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,31 @@
+{
+  "projectionId": "core-smpp-v1",
+  "projectionVersion": 1,
+  "acceptedFactTypes": [
+    "provider.task.lifecycle",
+    "provider.command.lifecycle",
+    "adapter.rpc",
+    "provider.scheduler.decision",
+    "provider.recovery.lifecycle",
+    "provider.ttl.lifecycle",
+    "provider.authorization.decision",
+    "provider.configuration.changed",
+    "resource.state",
+    "resource.metric",
+    "resource.health",
+    "execution.progress",
+    "resource.measurement.fact"
+  ],
+  "targetModels": [
+    "provider_operation_fact",
+    "task_lifecycle_fact",
+    "command_lifecycle_fact",
+    "resource_state_fact",
+    "resource_health_fact",
+    "execution_progress_fact",
+    "measurement_fact",
+    "decision_fact",
+    "recovery_fact",
+    "entity_relation_fact"
+  ]
+}

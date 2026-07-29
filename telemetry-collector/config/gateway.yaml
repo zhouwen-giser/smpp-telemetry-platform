@@ -1,0 +1,86 @@
+receivers:
+  otlp/smpp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter/provider_ops:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  filter/provider_ops_only:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'attributes["sdar.record.id"] == nil'
+  resource/trusted_ingress:
+    attributes:
+      - key: telemetry.source.system
+        value: smpp
+        action: upsert
+      - key: telemetry.source.collector_id
+        value: ${env:COLLECTOR_ID}
+        action: upsert
+      - key: telemetry.source.trust_domain
+        value: ${env:TRUST_DOMAIN}
+        action: upsert
+      - key: telemetry.source.deployment_id
+        value: ${env:SMPP_DEPLOYMENT_ID}
+        action: upsert
+      - key: telemetry.ingress.mode
+        value: gateway
+        action: upsert
+  transform/provider_ops_contract:
+    error_mode: propagate
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["telemetry.channel"], "smpp.provider_ops")
+          - set(attributes["telemetry.contract.name"], "ProviderOpsEnvelope")
+          - set(attributes["telemetry.contract.version"], "1.1.0")
+
+exporters:
+  otlphttp/processor_provider_ops:
+    endpoint: http://telemetry-processor:8443/internal/otlp
+    compression: none
+    timeout: 10s
+    sending_queue:
+      enabled: false
+    retry_on_failure:
+      enabled: false
+  debug/best_effort:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    metrics:
+      level: normal
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+                without_type_suffix: true
+                without_units: true
+  pipelines:
+    logs/provider_ops:
+      receivers: [otlp/smpp]
+      processors: [memory_limiter/provider_ops, filter/provider_ops_only, resource/trusted_ingress, transform/provider_ops_contract]
+      exporters: [otlphttp/processor_provider_ops]
+    traces/best_effort:
+      receivers: [otlp/smpp]
+      processors: [memory_limiter/provider_ops]
+      exporters: [debug/best_effort]
+    metrics/best_effort:
+      receivers: [otlp/smpp]
+      processors: [memory_limiter/provider_ops]
+      exporters: [debug/best_effort]

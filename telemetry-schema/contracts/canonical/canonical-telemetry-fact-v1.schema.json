@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:smpp-telemetry:canonical-fact:1.0.0",
+  "type": "object",
+  "required": [
+    "canonicalEnvelopeVersion",
+    "factId",
+    "factHash",
+    "factType",
+    "sourceSystem",
+    "sourceRecordId",
+    "tenantId",
+    "projectId",
+    "occurredAt",
+    "payload",
+    "provenance"
+  ],
+  "properties": {
+    "canonicalEnvelopeVersion": {
+      "const": "1.0.0"
+    },
+    "factId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "factHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "factType": {
+      "type": "string"
+    },
+    "sourceSystem": {
+      "type": "string"
+    },
+    "sourceRecordId": {
+      "type": "string"
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {},
+    "provenance": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "mappings": [
+    {
+      "collectorId": "smpp-gateway-1",
+      "trustDomain": "local-compose",
+      "deploymentId": "development",
+      "providerId": "*",
+      "instanceId": "*",
+      "tenantId": "tenant-local",
+      "projectId": "smpp-local",
+      "environment": "development",
+      "sourceProduct": "sdar-mcp-provider-platform",
+      "mappingVersion": 2,
+      "policyVersion": 1,
+      "projectionRouteIds": ["standalone-smpp"],
+      "status": "active",
+      "validFrom": "2026-01-01T00:00:00Z",
+      "validTo": null
+    }
+  ]
+}

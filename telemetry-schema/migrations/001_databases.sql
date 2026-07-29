@@ -1,0 +1,5 @@
+CREATE DATABASE IF NOT EXISTS telemetry_meta;
+CREATE DATABASE IF NOT EXISTS telemetry_landing;
+CREATE DATABASE IF NOT EXISTS telemetry_normalized;
+CREATE DATABASE IF NOT EXISTS telemetry_core;
+CREATE DATABASE IF NOT EXISTS telemetry_serving;

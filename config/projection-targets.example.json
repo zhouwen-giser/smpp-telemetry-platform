@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "targetId": "standalone-smpp",
+      "targetType": "standalone_smpp_clickhouse",
+      "enabled": true,
+      "required": true,
+      "writeLayers": [
+        "landing",
+        "normalized",
+        "core",
+        "relation"
+      ],
+      "connection": {
+        "url": "http://clickhouse:8123",
+        "user": "default",
+        "passwordFile": "/run/secrets/clickhouse_password"
+      },
+      "tableMap": {},
+      "routeIds": [
+        "standalone-smpp"
+      ]
+    },
+    {
+      "targetId": "sdar-warehouse-shadow",
+      "targetType": "sdar_shared_warehouse",
+      "enabled": false,
+      "required": false,
+      "writeLayers": [
+        "normalized",
+        "core",
+        "relation"
+      ],
+      "connection": {
+        "url": "http://sdar-clickhouse:8123",
+        "user": "telemetry_projection_writer",
+        "passwordFile": "/run/secrets/sdar_warehouse_password"
+      },
+      "tableMap": {},
+      "routeIds": [
+        "sdar-warehouse-shadow"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:smpp-telemetry:entity-relation:1.0.0",
+  "type": "object",
+  "required": [
+    "relationId",
+    "relationType",
+    "sourceEntityUrn",
+    "targetEntityUrn",
+    "sourceSystem",
+    "targetSystem",
+    "confidenceClass"
+  ],
+  "properties": {
+    "relationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "relationType": {
+      "enum": [
+        "delegates_to",
+        "invokes",
+        "served_by",
+        "executes_on",
+        "routes_to",
+        "retries_as",
+        "correlates_with",
+        "observes",
+        "supersedes"
+      ]
+    },
+    "sourceEntityUrn": {
+      "type": "string",
+      "pattern": "^urn:telemetry:"
+    },
+    "targetEntityUrn": {
+      "type": "string",
+      "pattern": "^urn:telemetry:"
+    },
+    "sourceSystem": {
+      "type": "string"
+    },
+    "targetSystem": {
+      "type": "string"
+    },
+    "confidenceClass": {
+      "enum": [
+        "authoritative",
+        "configured",
+        "traced",
+        "derived"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

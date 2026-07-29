@@ -1,0 +1,30 @@
+{
+  "description": "Two SDAR tasks invoke two SMPP tasks without one-to-one overwrite",
+  "sdarTasks": [
+    "s1",
+    "s2"
+  ],
+  "smppTasks": [
+    "p1",
+    "p2"
+  ],
+  "expectedRelations": [
+    {
+      "source": "s1",
+      "target": "p1"
+    },
+    {
+      "source": "s2",
+      "target": "p1"
+    },
+    {
+      "source": "s1",
+      "target": "p2"
+    },
+    {
+      "source": "s2",
+      "target": "p2"
+    }
+  ],
+  "expectedCount": 4
+}

@@ -1,0 +1,22 @@
+{
+  "name": "smpp-telemetry-platform",
+  "version": "0.2.1",
+  "private": true,
+  "description": "One-click Docker SMPP telemetry platform with OpenTelemetry Collector, durable projection outputs, ClickHouse, Query API and Grafana",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node telemetry-processor/src/apps/index.mjs",
+    "start:processor": "node telemetry-processor/src/apps/index.mjs",
+    "start:query-api": "node telemetry-dashboard/query-api/src/index.mjs",
+    "migrate": "node telemetry-schema/tools/migrate.mjs",
+    "send:sample": "node tools/send-sample.mjs",
+    "backfill:v01": "node telemetry-schema/tools/backfill-v01.mjs",
+    "test": "node --test telemetry-processor/test/*.test.mjs telemetry-collector/tests/*.test.mjs telemetry-dashboard/query-api/test/*.test.mjs telemetry-schema/tools/*.test.mjs",
+    "check": "node tools/check-syntax.mjs && npm test",
+    "manifest": "node tools/create-manifest.mjs"
+  },
+  "license": "Apache-2.0"
+}
