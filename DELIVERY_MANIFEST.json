@@ -1,36 +1,9 @@
 {
   "project": "smpp-telemetry-platform",
-  "version": "0.2.0",
-  "architecture": [
-    "telemetry-collector",
-    "telemetry-processor",
-    "telemetry-schema",
-    "telemetry-dashboard"
-  ],
-  "scope": "SMPP ProviderOps reliable collection, ClickHouse warehouse, source-neutral projection, and future SDAR warehouse target contract",
-  "generatedAt": "2026-07-29T12:35:04.060Z",
-  "runtime": "Node.js >=22",
-  "pinnedImages": {
-    "collector": "otel/opentelemetry-collector-contrib:0.157.0",
-    "clickhouse": "clickhouse/clickhouse-server:25.3",
-    "grafana": "grafana/grafana:12.1.0"
-  },
-  "automatedVerification": {
-    "command": "npm run check",
-    "syntaxFilesPassed": 34,
-    "testsPassed": 17,
-    "testsFailed": 0,
-    "testsSkipped": 0
-  },
-  "environmentLimitations": [
-    "Docker/Podman was unavailable in the build environment",
-    "Real OpenTelemetry Collector container validation was not run",
-    "Real ClickHouse migration and end-to-end ingestion were not run",
-    "Production SMPP mTLS and SDAR warehouse shadow-write integration remain deployment acceptance items"
-  ],
-  "includedFileCount": 88,
-  "includedBytes": 198182,
-  "projectTreeSha256": "1377f41e1d6f4bd1f1f05fd40bdaee1ec3613304fcf95a86b455ac7187afa601",
+  "version": "0.3.0",
+  "artifactType": "TypeScript source distribution",
+  "generatedAt": "2026-07-29T13:08:51.580732+00:00",
+  "fileCount": 98,
   "files": [
     {
       "path": ".dockerignore",
@@ -49,8 +22,8 @@
     },
     {
       "path": "README.md",
-      "size": 1743,
-      "sha256": "243a82aab0a0e8e89112209d86e196220f2a61aeac31f3e4dfbd0f947f89b4c8"
+      "size": 2020,
+      "sha256": "2ada9f1e9c4c7aecf8db74d9b3895f4828e269c8c392f8bbd08e49c87a492845"
     },
     {
       "path": "compose.yaml",
@@ -83,12 +56,7 @@
       "sha256": "119e9c6b5abf9a3fdfec849fb4238d374471003e3df0ebc2fbb26cca7deaac74"
     },
     {
-      "path": "deploy.sh",
-      "size": 1544,
-      "sha256": "fbda619b1a3b00bc60cc9a45698b8287991aa18862b82069461009062fe73dc1"
-    },
-    {
-      "path": "deploy/bin/generate-config.mjs",
+      "path": "deploy/bin/generate-config.ts",
       "size": 2497,
       "sha256": "9c6e2a5a7324342d6d1ad25e9307c2015c19ebc22ca526318cbdab1610f9c614"
     },
@@ -96,6 +64,11 @@
       "path": "deploy/compose/compose.yaml",
       "size": 3876,
       "sha256": "8ce4cbd815d1135a311de1313c38580f0684a473b14efc44b9f4107692689097"
+    },
+    {
+      "path": "deploy.sh",
+      "size": 1659,
+      "sha256": "b742cb4613970d474872876c1a6f89124a5d40371850b548cb05ce35fa0846f7"
     },
     {
       "path": "docs/ACCEPTANCE.md",
@@ -116,6 +89,11 @@
       "path": "docs/IMPLEMENTATION_PLAN_V0.2.0.md",
       "size": 1280,
       "sha256": "f1ef6c58fc2b4758182df6dff85c564f2719bd894c9d374ade4d6a1af74c6d2e"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_PLAN_V0.3.0.md",
+      "size": 1076,
+      "sha256": "f40330976c1675bae9c6a76caab488684d15446207ed0708314ad5e4c1ac5bc1"
     },
     {
       "path": "docs/IMPLEMENTATION_REPORT_V0.2.0.md",
@@ -139,8 +117,8 @@
     },
     {
       "path": "docs/SMPP_TELEMETRY_FOUR_LAYER_DETAILED_DESIGN_V2.0.md",
-      "size": 44682,
-      "sha256": "8cbf537613f05e7f6c8ba0acf78b06d3e9e9fa2e98e7e5d8878c4860be092aee"
+      "size": 44672,
+      "sha256": "ed035e27c67e6ba8828003dc104359f9491429466f472a5a1a31525c5bf4ae83"
     },
     {
       "path": "docs/SMPP_TELEMETRY_FOUR_LAYER_DETAILED_DESIGN_V2.0.md.sha256",
@@ -153,19 +131,24 @@
       "sha256": "978539fb62410df20f9794c153ac7eed30b7fb6397595cc553e3af25b61d7149"
     },
     {
-      "path": "docs/test-output-v0.2.0.tap",
-      "size": 3033,
-      "sha256": "ef08425945a212759b9d0f3fca0d58a177095d2699078f7f9034fc8a5b639e4b"
+      "path": "docs/TEST_REPORT_V0.3.0.md",
+      "size": 493,
+      "sha256": "140c9fe0a1555296c8532da8a31740f48887b1df96e92644f22bac16595483a9"
     },
     {
-      "path": "docs/test-output-v0.2.1.tap",
-      "size": 3337,
-      "sha256": "851691a39fa09fadd2741dc56b67691a6052960653fbaab7947dbd0f1ffd4c36"
+      "path": "docs/TypeScript开发说明.md",
+      "size": 2141,
+      "sha256": "3c11542457a9ed138a3efc8498c495b5dce852dc245d264d2e2ba38c555ebc60"
+    },
+    {
+      "path": "docs/test-output-v0.3.0.tap",
+      "size": 3514,
+      "sha256": "ce69c3a197976f79f4a36d1598394d2a9c5abd428f2f37c6b78098f9bfa33d0e"
     },
     {
       "path": "docs/中文使用说明.md",
-      "size": 7310,
-      "sha256": "5bdf0fa5f8127213f2bfb6847b42e46320238276e738a4606800dddbf958df1a"
+      "size": 7700,
+      "sha256": "ff3dff212f11e157437f9bc3ea190d016ad5fb845f279920505d8e5c886b85fb"
     },
     {
       "path": "logs.sh",
@@ -174,8 +157,33 @@
     },
     {
       "path": "package.json",
-      "size": 1005,
-      "sha256": "8db85c2cfb369aea578bd7ba4c14a34f537549929715aca41bdadf82b34fc2ce"
+      "size": 1322,
+      "sha256": "492195385b258af020dd0fe3adcc1660b8a2feb990e5f2fb91af3a796401fa54"
+    },
+    {
+      "path": "packages/telemetry-contracts/package.json",
+      "size": 113,
+      "sha256": "2f9c0495fae00d0d36d83045edbdb9978504b006c4f1e90eca232f0ab6f6e98b"
+    },
+    {
+      "path": "packages/telemetry-contracts/src/index.ts",
+      "size": 282,
+      "sha256": "05610628fc3548325bd9ac7f49152027d10c2ed919b6278d2b86acd2b3caf374"
+    },
+    {
+      "path": "packages/telemetry-types/package.json",
+      "size": 109,
+      "sha256": "2e12b5fb227bd6811b4cc1868f0b8b17dbb7e8b782f59808eb4e0ef7c3c6d3fd"
+    },
+    {
+      "path": "packages/telemetry-types/src/index.ts",
+      "size": 1046,
+      "sha256": "08710258466db75d6abc43b066a47819578ce3a8602861a7baf43fe13e98fa87"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "size": 83,
+      "sha256": "95b88cb5e025fa74f91f659caeac67716c535e255a7ad8a126c96ac7ca30702e"
     },
     {
       "path": "reset.sh",
@@ -208,9 +216,9 @@
       "sha256": "afef0c4be5b5fc4ba373bad2d171ac8232bffb8f176930a907960d3e6462975b"
     },
     {
-      "path": "telemetry-collector/tests/config.test.mjs",
-      "size": 590,
-      "sha256": "228b26e99f692e7e7c316f59fc09a3981d03954aa0c5d08357c42875e2cfe1ed"
+      "path": "telemetry-collector/tests/config.test.ts",
+      "size": 619,
+      "sha256": "5323d6a929039a0a3733b8055427bd798969e11817cc5d4860ebcdcdfba7b0ee"
     },
     {
       "path": "telemetry-dashboard/README.md",
@@ -234,148 +242,158 @@
     },
     {
       "path": "telemetry-dashboard/query-api/Dockerfile",
-      "size": 170,
-      "sha256": "030e5996280b53089cec692450b7a51fa2f0342777ee07a4f86b9fc6789f071c"
+      "size": 607,
+      "sha256": "d09c7b79aef5bad9058119545d00090a4a5b139cb836e2b2ca986cda2165980c"
     },
     {
-      "path": "telemetry-dashboard/query-api/src/clickhouse.mjs",
+      "path": "telemetry-dashboard/query-api/package.json",
+      "size": 149,
+      "sha256": "864c7745b163691ae589e5ffc4a152beea32a5ae6be8a6bc7bfbb7b738e557b2"
+    },
+    {
+      "path": "telemetry-dashboard/query-api/src/clickhouse.ts",
       "size": 794,
       "sha256": "cfa0f66268a691bae0f4db7aab39ec06e6d2dd69dccaf8134e34e7375d148c10"
     },
     {
-      "path": "telemetry-dashboard/query-api/src/index.mjs",
-      "size": 608,
-      "sha256": "8a63cb4b8ccc36026539d77d518678b9741950fb9ab397bf83f52604ebc3488e"
+      "path": "telemetry-dashboard/query-api/src/index.ts",
+      "size": 606,
+      "sha256": "258e60f1fb9d42406a65b62605d4412886a72a3ba478bc22b8b994c38b1c213a"
     },
     {
-      "path": "telemetry-dashboard/query-api/src/server.mjs",
-      "size": 3664,
-      "sha256": "c3f50f39acf3b50c71918601d7adc6a6992b2e3bd6870e4b6cee8df2c44ae41c"
+      "path": "telemetry-dashboard/query-api/src/server.ts",
+      "size": 3663,
+      "sha256": "8748fdf302bafedcdfcb2c4c844bec4db38dfa090aeb1bf82d38963af73585f2"
     },
     {
-      "path": "telemetry-dashboard/query-api/test/server.test.mjs",
-      "size": 907,
-      "sha256": "9db2786bb8345842b7f410b4a2c391051ccae25e9ec3d6125b369db0813666cd"
+      "path": "telemetry-dashboard/query-api/test/server.test.ts",
+      "size": 906,
+      "sha256": "82aea0b610cbab0f796b12263daa8117c7b4354f945bfcff65a04e3e4cd8a9ac"
     },
     {
       "path": "telemetry-processor/Dockerfile",
-      "size": 275,
-      "sha256": "4b162f624bdbd38394aba3ac102b7ecff4722bce5c2a5fc16023044f468a41bd"
+      "size": 670,
+      "sha256": "3999d4a4e8318ced856dc79b15fcf03f53a7264acd9eee9163129baa61b6644e"
     },
     {
-      "path": "telemetry-processor/src/apps/index.mjs",
-      "size": 1569,
-      "sha256": "d83a1a7f34f86d52bdf355ce58eebaaaa7a96b7cb97dfb730d487d11e1dc49f7"
+      "path": "telemetry-processor/package.json",
+      "size": 141,
+      "sha256": "b03f252e0d1381cb744c371d551d228d4fdde93f5ed525c934722f83a8ce3005"
     },
     {
-      "path": "telemetry-processor/src/apps/processor.mjs",
-      "size": 2766,
-      "sha256": "fbe6ea5a9200cfb2a625a7ee6295fa5698969737fc44c5e565b66842fbdfd146"
+      "path": "telemetry-processor/src/apps/index.ts",
+      "size": 1562,
+      "sha256": "1c99aac2074588d22e8e174e722a697cb3a555475cc9101619b46af7899f28f4"
     },
     {
-      "path": "telemetry-processor/src/apps/server.mjs",
-      "size": 3923,
-      "sha256": "2e03fef49d892f782f25be6f1a558b15b7fc17d1eca3d0667b5fb7f4ce36f274"
+      "path": "telemetry-processor/src/apps/processor.ts",
+      "size": 2765,
+      "sha256": "b62512cc9e08a8ea777bc1eaaf04eff22c372b85d6fbb0e3b3f36a899e676ed5"
     },
     {
-      "path": "telemetry-processor/src/packages/canonical/canonical.mjs",
+      "path": "telemetry-processor/src/apps/server.ts",
+      "size": 3921,
+      "sha256": "8f45d44221e734632a26ae07b32c312fc98727a59d17cc1e27d9c3250c7b63ab"
+    },
+    {
+      "path": "telemetry-processor/src/packages/canonical/canonical.ts",
       "size": 1648,
       "sha256": "08f5b27eca5493b7d8b701bf7613d3467bca82575db511526bb193ced7f420a2"
     },
     {
-      "path": "telemetry-processor/src/packages/config/config.mjs",
+      "path": "telemetry-processor/src/packages/config/config.ts",
       "size": 1894,
       "sha256": "f89c9239fa6c4ab7dd22fafb644aaf23e8936739e905a45dfbd03779385fc998"
     },
     {
-      "path": "telemetry-processor/src/packages/exporters/clickhouse.mjs",
+      "path": "telemetry-processor/src/packages/exporters/clickhouse.ts",
       "size": 3700,
       "sha256": "672a5447722aea6f21c3b8e3c68ef51fa35fbd38a752fcdd49e2e6247aa4a3ec"
     },
     {
-      "path": "telemetry-processor/src/packages/exporters/target-manager.mjs",
-      "size": 4390,
-      "sha256": "75b3a3066d3e654c63bf48011a56c336696b75bbecd28e1372ea0f48bc5da34a"
+      "path": "telemetry-processor/src/packages/exporters/target-manager.ts",
+      "size": 4387,
+      "sha256": "f80ac8abaa4a3f034a6ffe3a465e355b56a52a03baa608b631b0091c38d78863"
     },
     {
-      "path": "telemetry-processor/src/packages/metrics/metrics.mjs",
+      "path": "telemetry-processor/src/packages/metrics/metrics.ts",
       "size": 784,
       "sha256": "887d213cb791eb0c751fd9abe792fd7d44a56363aa7cc166fbab088bcc2e46dc"
     },
     {
-      "path": "telemetry-processor/src/packages/normalization/smpp-provider-ops-v1.mjs",
-      "size": 5474,
-      "sha256": "589390d8769654d73c42755878b6b6fd7d3946d477db97f7fef1cb9a25b65324"
+      "path": "telemetry-processor/src/packages/normalization/smpp-provider-ops-v1.ts",
+      "size": 5473,
+      "sha256": "0388bc4522016c1f8334f5b6a53675bdd3c3cc491a943fae22fe07c0fb9268c8"
     },
     {
-      "path": "telemetry-processor/src/packages/otlp/otlp-json.mjs",
+      "path": "telemetry-processor/src/packages/otlp/otlp-json.ts",
       "size": 1705,
       "sha256": "104d8d31acfcf0b8e3b1000480a42cda530eea31e6db06a8111a5da4d6d7aa31"
     },
     {
-      "path": "telemetry-processor/src/packages/otlp/otlp-protobuf.mjs",
+      "path": "telemetry-processor/src/packages/otlp/otlp-protobuf.ts",
       "size": 6118,
       "sha256": "a1eef7bb082f2aced177dfaacc5d14ef1811dc2c79c64ee59f4a301bb2a601c4"
     },
     {
-      "path": "telemetry-processor/src/packages/projection/core-projection.mjs",
+      "path": "telemetry-processor/src/packages/projection/core-projection.ts",
       "size": 3153,
       "sha256": "1b54328c87ef2dc81669578a0e7efa8a0d8de68bd872754f11cdd3a8fcee4084"
     },
     {
-      "path": "telemetry-processor/src/packages/source-mapping/source-mapping.mjs",
+      "path": "telemetry-processor/src/packages/source-mapping/source-mapping.ts",
       "size": 1341,
       "sha256": "bb5c8bfb9051235c53804fa37b949320ff08ab69025772d87343ec42555caa75"
     },
     {
-      "path": "telemetry-processor/src/packages/validation/validation.mjs",
-      "size": 5509,
-      "sha256": "c9f146d290c65d838a5e6ad733f293430733e1da730938b7ecf8a50b4913fc6e"
+      "path": "telemetry-processor/src/packages/validation/validation.ts",
+      "size": 5508,
+      "sha256": "e619c86ac2452da8c977984390bdb7866d26016514a43da82a843e716a2c9c57"
     },
     {
-      "path": "telemetry-processor/src/packages/wal/crc32c.mjs",
+      "path": "telemetry-processor/src/packages/wal/crc32c.ts",
       "size": 365,
       "sha256": "9cf07a0bff3b659ad0720f92b152f90c0dc02a470ef3267a103f9f79373f035a"
     },
     {
-      "path": "telemetry-processor/src/packages/wal/wal.mjs",
-      "size": 4769,
-      "sha256": "fe9418b557a86b9c4d0aa110f2ca2632d7d6bba53eee93dfce0c5f887bcdd365"
+      "path": "telemetry-processor/src/packages/wal/wal.ts",
+      "size": 4768,
+      "sha256": "67f13a9ae861e0dfb900d68bd6152c714a0a511265189d43e3a7554b26baf390"
     },
     {
-      "path": "telemetry-processor/test/canonical.test.mjs",
-      "size": 609,
-      "sha256": "c8ce537fe547733ada20fbf3c3a883ba2c4f2060025f150db5556e7151defce7"
+      "path": "telemetry-processor/test/canonical.test.ts",
+      "size": 607,
+      "sha256": "d7b95aca1f43f83baf1949394504f8ff3b2fe312e97ce14dbcea6392609537c0"
     },
     {
-      "path": "telemetry-processor/test/helpers.mjs",
-      "size": 1358,
-      "sha256": "baea6ac8adc1a6c491fc7e641f114e0a68adfc66dbd0a741925ec45612a025a3"
+      "path": "telemetry-processor/test/helpers.ts",
+      "size": 1357,
+      "sha256": "4f0d7805c2b2163d80a6375bff1254d372a00fe133d647f3a8e36070451e0d5f"
     },
     {
-      "path": "telemetry-processor/test/normalization.test.mjs",
-      "size": 1388,
-      "sha256": "2ca57ab10987c9198a5ee3e76b39b6e412b43a80dceffa625c4380534b35ace1"
+      "path": "telemetry-processor/test/normalization.test.ts",
+      "size": 1385,
+      "sha256": "00b700e5ebe76e259c8839f830843132154941d5d7a72ce2c84177a8e1c200c2"
     },
     {
-      "path": "telemetry-processor/test/otlp-ingest.test.mjs",
-      "size": 2616,
-      "sha256": "02f1e7c4d06853a206cad4ba5ac416e6365946251a3ae330b03ac8177fd7cbed"
+      "path": "telemetry-processor/test/otlp-ingest.test.ts",
+      "size": 2611,
+      "sha256": "f6551f74e20dba108e6d4d75f4f632f8695542c17bde50b2d62b4776dc0d226c"
     },
     {
-      "path": "telemetry-processor/test/processor.test.mjs",
-      "size": 1569,
-      "sha256": "7c3552cd209feb8900d900af052b2bf6b4ff745a4ee3bf422bad7350cdc2be5f"
+      "path": "telemetry-processor/test/processor.test.ts",
+      "size": 1564,
+      "sha256": "2c699e333b4e15c87cab20789c21321808dd55020d4bdd84e7d2cb1e6acd6c36"
     },
     {
-      "path": "telemetry-processor/test/target-manager.test.mjs",
-      "size": 1626,
-      "sha256": "bcaea02e2f68c8a8d45b1e7939ad6e33fd6452b0a1015bdd23fbc4d10710ae78"
+      "path": "telemetry-processor/test/target-manager.test.ts",
+      "size": 1622,
+      "sha256": "52a891c83331d3ab5bb13867cb32ed2e57f372bf45c04c7afe2562454f18bb57"
     },
     {
-      "path": "telemetry-processor/test/wal.test.mjs",
-      "size": 1157,
-      "sha256": "1bdb467dae3a307b4b434e714e282b75649c16053900fbb22a9e0b14ee41c1b2"
+      "path": "telemetry-processor/test/wal.test.ts",
+      "size": 1156,
+      "sha256": "ccedc660b8a7afe13a787fec40e5af7d9caef7889990913011374cccfbc88753"
     },
     {
       "path": "telemetry-schema/contracts/canonical/canonical-telemetry-fact-v1.schema.json",
@@ -438,39 +456,44 @@
       "sha256": "b259039c35c86b65baf6fd7238ce0b2ba94f49bdbc23a534782e490f95001d9d"
     },
     {
-      "path": "telemetry-schema/tools/backfill-v01.mjs",
-      "size": 875,
-      "sha256": "c9ffc062689c3f73c6f4a65336cfc006d15b41e094af2e4d10ef45fbe77ab448"
+      "path": "telemetry-schema/tools/backfill-v01.ts",
+      "size": 874,
+      "sha256": "f2f4c832c34b4a3da479606f0687037e9cfda68ff2368047e3b67b6095bbdb19"
     },
     {
-      "path": "telemetry-schema/tools/deployment.test.mjs",
-      "size": 1054,
-      "sha256": "cb58c63988c9603617e25bbd6fe0c1babc0f37f82bfcb1321fa62dc5d0988bc8"
+      "path": "telemetry-schema/tools/deployment.test.ts",
+      "size": 1056,
+      "sha256": "56b32418f3bde18f53b5769c876df2feebfb93073d81723303f2e3548225a7a9"
     },
     {
-      "path": "telemetry-schema/tools/migrate.mjs",
-      "size": 806,
-      "sha256": "95c49223a5a52f4619264424868868e1ae344ed8f6a202050cb2dbbe1bff103a"
+      "path": "telemetry-schema/tools/migrate.ts",
+      "size": 831,
+      "sha256": "776fca2fdb163b6dcf5b253158436cb3530e2d8c1c11e4ae417e525a79bc577d"
     },
     {
-      "path": "telemetry-schema/tools/schema.test.mjs",
-      "size": 847,
-      "sha256": "af95f2beafd4386af81e666b84a6223d571074134b73f540c202c5b8d4399519"
+      "path": "telemetry-schema/tools/schema.test.ts",
+      "size": 899,
+      "sha256": "d9d24b56ae2f7523700ec820f7d2d553c3f0d966600b3d358b8ad7d29ad1a457"
     },
     {
-      "path": "tools/check-syntax.mjs",
-      "size": 536,
-      "sha256": "435fbbd128a39d261ab2721ffc22c28f281f8621d3478b2908826a7bbb67bbf8"
+      "path": "tools/check-syntax.ts",
+      "size": 535,
+      "sha256": "8865aed31058fc8e5646424135bf1ef3258544c53d4f03504b51f0027a253465"
     },
     {
-      "path": "tools/create-manifest.mjs",
+      "path": "tools/create-manifest.ts",
       "size": 2435,
       "sha256": "400123bd5ccf3fda201fcbd7ff255a1fd969072c2c6034f2b97c0635193fed81"
     },
     {
-      "path": "tools/send-sample.mjs",
-      "size": 2117,
-      "sha256": "10b697fa020e63433dd4b390e558f6033639b2a279b3d94db2ba487caa54eefc"
+      "path": "tools/send-sample.ts",
+      "size": 2116,
+      "sha256": "ce81179b4edf7842ad7db5aa5e3d38b1bdf94a121aabf2f4f4c79a2b1f13b4cc"
+    },
+    {
+      "path": "tsconfig.json",
+      "size": 850,
+      "sha256": "9f4e786f0dbc7df4c08fe09d68cc8e4a6b274f4d7cdda13f19f3182cd38a0615"
     }
   ]
 }

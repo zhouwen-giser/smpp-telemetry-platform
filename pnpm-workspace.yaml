@@ -1,0 +1,4 @@
+packages:
+  - telemetry-processor
+  - telemetry-dashboard/query-api
+  - packages/*

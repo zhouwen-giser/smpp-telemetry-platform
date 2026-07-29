@@ -27,7 +27,7 @@ SMPP Runtime
 已经实现。出口位于：
 
 ```text
-telemetry-processor/src/packages/exporters/target-manager.mjs
+telemetry-processor/src/packages/exporters/target-manager.js
 ```
 
 处理流程如下：
@@ -76,8 +76,8 @@ Windows 建议在 WSL2 中执行脚本。
 ### 4.1 解压
 
 ```bash
-unzip smpp-telemetry-platform-v0.2.1.zip
-cd smpp-telemetry-platform-v0.2.1
+unzip smpp-telemetry-platform-v0.3.0.zip
+cd smpp-telemetry-platform-v0.3.0
 ```
 
 ### 4.2 创建配置
@@ -333,3 +333,19 @@ telemetry_core.entity_relation_fact
 ```text
 docs/SDAR_WAREHOUSE_PROJECTION_GUIDE.md
 ```
+
+---
+
+## TypeScript 源码说明（v0.3.0）
+
+本版本已将 Processor、Query API、测试、Schema 工具和部署配置生成器全部转换为 TypeScript 源码。压缩包不预置 `dist`，Docker 构建时会自动执行 TypeScript 编译。
+
+本地开发命令：
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+详细结构和扩展方式参见 `docs/TypeScript开发说明.md`。

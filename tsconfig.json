@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": [
+    "telemetry-processor/src/**/*.ts",
+    "telemetry-processor/test/**/*.ts",
+    "telemetry-dashboard/query-api/src/**/*.ts",
+    "telemetry-dashboard/query-api/test/**/*.ts",
+    "telemetry-collector/tests/**/*.ts",
+    "telemetry-schema/tools/**/*.ts",
+    "tools/**/*.ts",
+    "deploy/bin/**/*.ts",
+    "packages/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

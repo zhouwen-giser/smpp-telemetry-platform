@@ -1656,16 +1656,16 @@ smpp-telemetry-platform/
 
 | v0.1.0 文件/能力 | V2.0 目标位置 | 处理方式 |
 |---|---|---|
-| `src/otlp-json.mjs` | telemetry-collector | 由官方 Collector 替代 |
-| `src/otlp-protobuf.mjs` | telemetry-collector | 由官方 Collector 替代 |
-| `src/server.mjs` 外部 OTLP 接收 | telemetry-collector | 删除自研外部 Receiver |
-| `src/validation.mjs` | telemetry-processor/packages/validation | 保留并模块化 |
-| `src/canonical.mjs` | telemetry-processor/packages/canonical | 保留，补充版本接口 |
-| `src/source-mapping.mjs` | telemetry-processor/packages/source-mapping | 保留，增加有效时间和路线 |
-| `src/wal.mjs` | telemetry-processor/packages/wal | 保留，升级多水位和 Target Checkpoint |
-| `src/collector.mjs` | telemetry-processor/apps/ingest-api | 重命名和拆分 |
-| `src/clickhouse.mjs` | telemetry-processor/packages/exporters | 多目标接口化 |
-| `src/metrics.mjs` | Collector + Processor | 拆为两套指标 |
+| `src/otlp-json.js` | telemetry-collector | 由官方 Collector 替代 |
+| `src/otlp-protobuf.js` | telemetry-collector | 由官方 Collector 替代 |
+| `src/server.js` 外部 OTLP 接收 | telemetry-collector | 删除自研外部 Receiver |
+| `src/validation.js` | telemetry-processor/packages/validation | 保留并模块化 |
+| `src/canonical.js` | telemetry-processor/packages/canonical | 保留，补充版本接口 |
+| `src/source-mapping.js` | telemetry-processor/packages/source-mapping | 保留，增加有效时间和路线 |
+| `src/wal.js` | telemetry-processor/packages/wal | 保留，升级多水位和 Target Checkpoint |
+| `src/collector.js` | telemetry-processor/apps/ingest-api | 重命名和拆分 |
+| `src/clickhouse.js` | telemetry-processor/packages/exporters | 多目标接口化 |
+| `src/metrics.js` | Collector + Processor | 拆为两套指标 |
 | `clickhouse/migrations` | telemetry-schema/migrations | 分层迁移 |
 | Materialized Views | telemetry-schema + projection-worker | 复杂投影迁移到 Worker |
 | `compose.yaml` | deploy/compose | 增加 otel-collector 和 processor |

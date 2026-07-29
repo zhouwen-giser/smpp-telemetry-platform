@@ -13,7 +13,8 @@ if ! grep -q '^GRAFANA_ADMIN_PASSWORD=.' .env; then
   awk -v p="$PASS" 'BEGIN{done=0} /^GRAFANA_ADMIN_PASSWORD=/{print "GRAFANA_ADMIN_PASSWORD=" p;done=1;next} {print} END{if(!done) print "GRAFANA_ADMIN_PASSWORD=" p}' .env > .env.tmp
   mv .env.tmp .env
 fi
-docker run --rm -v "$ROOT:/work" -w /work node:22-alpine node deploy/bin/generate-config.mjs /work
+docker build --target builder -f telemetry-processor/Dockerfile -t smpp-telemetry-builder:0.3.0 .
+docker run --rm -v "$ROOT:/work" -w /app smpp-telemetry-builder:0.3.0 node dist/deploy/bin/generate-config.js /work
 docker compose pull
 docker compose up -d --build --remove-orphans
 printf '\n部署完成。\n'

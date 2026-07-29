@@ -1,8 +1,20 @@
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package.json tsconfig.json pnpm-workspace.yaml ./
+COPY telemetry-processor ./telemetry-processor
+COPY telemetry-dashboard/query-api ./telemetry-dashboard/query-api
+COPY telemetry-collector ./telemetry-collector
+COPY telemetry-schema ./telemetry-schema
+COPY packages ./packages
+COPY tools ./tools
+COPY deploy/bin ./deploy/bin
+RUN npm install --include=dev --ignore-scripts && npm run build
+
 FROM node:22-alpine
 WORKDIR /app
-COPY package.json ./
-COPY telemetry-processor ./telemetry-processor
-COPY config ./config
-RUN mkdir -p /var/lib/smpp-telemetry && chown -R node:node /var/lib/smpp-telemetry /app
+ENV NODE_ENV=production
+COPY --from=builder /app/dist ./dist
+COPY telemetry-schema ./telemetry-schema
+COPY contracts ./contracts
 USER node
-CMD ["node", "telemetry-processor/src/apps/index.mjs"]
+CMD ["node", "dist/telemetry-processor/src/apps/index.js"]

@@ -1,61 +1,64 @@
-# SMPP Telemetry Platform v0.2.1
+# SMPP Telemetry Platform v0.3.0（TypeScript 源码版）
 
-面向 SMPP ProviderOps 的标准四层遥测系统，包含官方 OpenTelemetry Collector、可靠 Processor、ClickHouse 数据仓库、Query API 和 Grafana。
+这是面向 SMPP ProviderOps 遥测的独立四层平台。项目提供完整 TypeScript 源码，Docker 镜像在构建阶段编译源码，`dist/` 不作为源码交付内容。
 
-```text
-SMPP Runtime Reliable Outbox
-  → OpenTelemetry Collector
-  → Telemetry Processor（校验 / Hash / 幂等 / WAL）
-  → Projection Targets
-  → ClickHouse Landing / Normalized / Core / Relation / Serving
-  → Query API / Grafana
-```
+## 四层架构
+
+1. `telemetry-collector`：官方 OpenTelemetry Collector 配置，接收 OTLP/HTTP 与 OTLP/gRPC。
+2. `telemetry-processor`：TypeScript 实现的校验、Hash、幂等、冲突隔离、WAL、规范化和多 Target 投影。
+3. `telemetry-schema`：ClickHouse Landing、Normalized、Core、Relation、Serving 建库脚本与合同。
+4. `telemetry-dashboard`：TypeScript Query API 和 Grafana provisioning。
+
+公共类型和合同位于：
+
+- `packages/telemetry-types/src`
+- `packages/telemetry-contracts/src`
 
 ## 一键部署
 
 ```bash
 cp .env.example .env
-# 编辑 TELEMETRY_PUBLIC_HOST 和 SMPP_SERVICES
-./deploy.sh
 ```
 
-`.env` 示例：
+修改 `.env`：
 
 ```env
 TELEMETRY_PUBLIC_HOST=192.168.1.20
-SMPP_SERVICES=http://192.168.1.101:3000,http://192.168.1.102:3000
+SMPP_SERVICES=smpp-a|http://192.168.1.101:3000,smpp-b|http://192.168.1.102:3000
 ```
 
-部署脚本会自动生成密钥、来源映射和 SMPP Runtime 接入配置，并启动：
-
-- ClickHouse 25.3；
-- OpenTelemetry Collector Contrib 0.157.0；
-- Telemetry Processor；
-- Query API；
-- Grafana。
-
-生成的 SMPP 配置：
-
-```text
-config/generated/SMPP_RUNTIME_OTEL_CONFIG.md
-```
-
-> OpenTelemetry 是主动推送模式。`SMPP_SERVICES` 用于登记和生成接入配置；每个 SMPP Runtime 仍需把 `OTEL_EXPORTER_OTLP_ENDPOINT` 指向本平台。
-
-## 投影出口
-
-投影出口已经实现。`TargetManager` 支持多个 ClickHouse Projection Target、独立路由、独立 WAL checkpoint、表映射和故障隔离。默认写本地 SMPP 仓库，并预留禁用态的 SDAR Warehouse Shadow Target。
-
-## 文档
-
-- [中文使用说明](docs/中文使用说明.md)
-- [四层架构详细设计](docs/SMPP_TELEMETRY_FOUR_LAYER_DETAILED_DESIGN_V2.0.md)
-- [SDAR 仓库投影指南](docs/SDAR_WAREHOUSE_PROJECTION_GUIDE.md)
-- [部署说明](docs/DEPLOYMENT.md)
-- [验收清单](docs/ACCEPTANCE.md)
-
-## 测试
+执行：
 
 ```bash
-npm run check
+chmod +x deploy.sh
+./deploy.sh
 ```
+
+Docker Compose 会启动 OpenTelemetry Collector、Telemetry Processor、ClickHouse、Query API 和 Grafana。SMPP 使用主动推送方式，因此还需要按自动生成的 `config/generated/SMPP_RUNTIME_OTEL_CONFIG.md` 配置各 SMPP Runtime 的 OTLP Endpoint。
+
+## TypeScript 开发
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+本项目运行时只依赖 Node.js 内置模块；开发依赖仅包括 TypeScript。编译结果输出到 `dist/`。
+
+## 关键能力
+
+- ProviderOpsEnvelope 1.1.0 校验和 Canonical Hash 重算；
+- WAL `fsync` 后 ACK；
+- `sourceSystem + recordId + recordHash` 幂等与冲突隔离；
+- Canonical Fact 与来源中立 Core Fact；
+- SDAR 与 SMPP N×N `entity_relation_fact`；
+- 多 Projection Target 独立 checkpoint 和故障隔离；
+- 未来 SDAR ClickHouse 仓库 Shadow Target；
+- 全容器化一键部署。
+
+详细中文说明见：
+
+- `docs/中文使用说明.md`
+- `docs/TypeScript开发说明.md`
+- `docs/IMPLEMENTATION_PLAN_V0.3.0.md`
