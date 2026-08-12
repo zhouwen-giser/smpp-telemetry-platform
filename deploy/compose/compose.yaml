@@ -9,7 +9,7 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./telemetry-schema/migrations:/docker-entrypoint-initdb.d:ro
-    ports: ["${CLICKHOUSE_HTTP_PORT:-8123}:8123", "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"]
+    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${CLICKHOUSE_HTTP_PORT:-8123}:8123", "${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${CLICKHOUSE_NATIVE_PORT:-9000}:9000"]
     healthcheck:
       test:
         - CMD-SHELL
@@ -66,7 +66,7 @@ services:
       telemetry-processor: { condition: service_healthy }
     volumes:
       - ./telemetry-collector/config/gateway.yaml:/etc/otelcol-contrib/config.yaml:ro
-    ports: ["${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_PORT:-4318}:4318", "13133:13133", "8888:8888", "9464:9464"]
+    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_GRPC_PORT:-4317}:4317", "${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_HTTP_PORT:-4318}:4318", "127.0.0.1:13133:13133", "127.0.0.1:8888:8888", "127.0.0.1:9464:9464"]
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
       interval: 10s
@@ -89,7 +89,7 @@ services:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
     secrets: [clickhouse_password]
-    ports: ["${QUERY_API_PORT:-8088}:8088"]
+    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${QUERY_API_PORT:-8088}:8088"]
 
   grafana:
     image: grafana/grafana:12.1.0
@@ -108,7 +108,7 @@ services:
       - ./telemetry-dashboard/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./telemetry-dashboard/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    ports: ["${GRAFANA_PORT:-3000}:3000"]
+    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"]
 
 secrets:
   clickhouse_password:

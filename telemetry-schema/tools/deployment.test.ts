@@ -7,6 +7,8 @@ test('one-click deployment assets exist and include all containers',async()=>{
   for(const service of ['clickhouse:','telemetry-migrate:','telemetry-processor:','otel-collector:','query-api:','grafana:']) assert.match(compose,new RegExp(`\\n  ${service}`));
   assert.match(compose,/config\/generated\/source-mappings\.json/);
   assert.match(compose,/service_completed_successfully/);
+  assert.match(compose,/TELEMETRY_BIND_ADDRESS/);
+  assert.doesNotMatch(compose,/ports: \["\$\{OTLP_GRPC_PORT/);
   await access(new URL('deploy.sh',root));
   await access(new URL('docs/SMPP_%E9%81%A5%E6%B5%8B%E5%B9%B3%E5%8F%B0%E4%B8%AD%E6%96%87%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md',root));
 });

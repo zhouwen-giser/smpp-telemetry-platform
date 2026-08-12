@@ -6,6 +6,8 @@ production transport mode: Runtime→Collector and Collector→Processor both re
 
 Copy `.env.example` to `.env`, set exact identities and an absolute `QUALIFICATION_SECRET_DIR`, then
 run `./preflight.sh`, `./up.sh`, `./smoke.sh`, or the restart-inclusive `./qualify.sh`.
+`TELEMETRY_BIND_ADDRESS` must be the exact loopback or private interface reachable by the Runtime;
+the preflight rejects wildcard host binding so OTLP is not exposed on every host interface.
 
 Use a qualification-specific `COMPOSE_PROJECT_NAME`. Compose will then create isolated ClickHouse,
 WAL, and Grafana volumes without touching operator production volumes. `down.sh` deliberately keeps
