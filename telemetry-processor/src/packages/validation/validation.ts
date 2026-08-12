@@ -2,7 +2,7 @@ import { calculateProviderOpsRecordHash } from '../canonical/canonical.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH = /^[a-f0-9]{64}$/;
 export const ALLOWED_TYPES = new Set([
-  'provider.task.lifecycle','provider.command.lifecycle','adapter.rpc','provider.scheduler.decision',
+  'provider.task.lifecycle','provider.command.lifecycle','provider.scheduler.decision',
   'provider.recovery.lifecycle','provider.ttl.lifecycle','provider.resource.state',
   'provider.resource.metric','provider.resource.health','provider.execution.progress',
   'provider.business_event.source.lifecycle','provider.business_event.ingest.lifecycle',
@@ -11,7 +11,7 @@ export const ALLOWED_TYPES = new Set([
   'provider.business_event.relation.lifecycle'
 ]);
 export const ALLOWED_EVENT_CATEGORIES = new Set([
-  'task.lifecycle','command.lifecycle','command.dispatch','adapter.rpc','scheduler.decision',
+  'task.lifecycle','command.lifecycle','command.dispatch','scheduler.decision',
   'recovery.lifecycle','ttl.lifecycle','resource.state','resource.metric','resource.health',
   'execution.progress','business_event.lifecycle'
 ]);

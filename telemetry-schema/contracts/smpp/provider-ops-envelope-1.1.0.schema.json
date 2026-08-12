@@ -39,7 +39,6 @@
       "enum": [
         "provider.task.lifecycle",
         "provider.command.lifecycle",
-        "adapter.rpc",
         "provider.scheduler.decision",
         "provider.recovery.lifecycle",
         "provider.ttl.lifecycle",
@@ -62,7 +61,6 @@
         "task.lifecycle",
         "command.lifecycle",
         "command.dispatch",
-        "adapter.rpc",
         "scheduler.decision",
         "recovery.lifecycle",
         "ttl.lifecycle",

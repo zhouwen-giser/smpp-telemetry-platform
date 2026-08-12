@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { calculateProviderOpsRecordHash } from '../src/packages/canonical/canonical.js';
-import { validateEnvelope } from '../src/packages/validation/validation.js';
+import { ALLOWED_DELIVERY_CLASSES, ALLOWED_EVENT_CATEGORIES, ALLOWED_TYPES, validateEnvelope } from '../src/packages/validation/validation.js';
 
 const vectorPath=new URL('telemetry-schema/contracts/test-vectors/smpp-local-source-provider-resource-state-1.1.0.json',`file://${process.cwd()}/`);
 const vector=JSON.parse(await readFile(vectorPath,'utf8'));
+const sourceCapture=JSON.parse(await readFile(new URL('reports/smpp-stable-integration/SMPP_TELEMETRY_SOURCE_CAPTURE.json',`file://${process.cwd()}/`),'utf8'));
 const envelope=vector.envelope;
 const attributes={
   'sdar.schema.name':envelope.schemaName,'sdar.schema.version':envelope.schemaVersion,
@@ -25,6 +26,12 @@ test('schema copies remain byte-identical',async()=>{
     readFile(new URL('telemetry-schema/contracts/smpp/provider-ops-envelope-1.1.0.schema.json',`file://${process.cwd()}/`))
   ]);
   assert.deepEqual(projectCopy,warehouseCopy);
+});
+
+test('validator allowlists equal the current SMPP ProviderOps source capture',()=>{
+  assert.deepEqual([...ALLOWED_TYPES],sourceCapture.recordTypes);
+  assert.deepEqual([...ALLOWED_EVENT_CATEGORIES],sourceCapture.eventCategories);
+  assert.deepEqual([...ALLOWED_DELIVERY_CLASSES],sourceCapture.deliveryClasses);
 });
 
 test('unknown schema major and OTLP/body mismatch fail closed',()=>{
