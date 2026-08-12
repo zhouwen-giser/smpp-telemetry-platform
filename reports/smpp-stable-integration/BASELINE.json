@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T10:29:42.675Z",
+  "telemetry": {
+    "repository": "zhouwen-giser/smpp-telemetry-platform",
+    "reviewedSha": "53a799d4c0166669411e61b816c6ed8ef63cc70f",
+    "executionOriginMainSha": "53a799d4c0166669411e61b816c6ed8ef63cc70f",
+    "baseSha": "53a799d4c0166669411e61b816c6ed8ef63cc70f",
+    "branch": "main",
+    "branchPolicy": "user-overridden: work on the existing local branch; no isolated telemetry branch",
+    "driftFromReviewedBaseline": false
+  },
+  "smpp": {
+    "repository": "zhouwen-giser/sdar-mcp-provider-platform",
+    "reviewedSha": "cce7ea0cb0fe1b13328a48189a76d9b1688f49f4",
+    "executionOriginMainSha": "cce7ea0cb0fe1b13328a48189a76d9b1688f49f4",
+    "auditSha": "678521e35c83793a59e045ef9bf59b4df842962e",
+    "auditBranch": "codex/goal-11-npc-tank-simulation-real-interface",
+    "sourceAuthorityPolicy": "user-overridden: current local SMPP branch is primary; origin/main remains the stable comparison baseline",
+    "driftFromReviewedBaseline": true,
+    "mutationAllowed": false,
+    "localWorkingBranchLeftUnchanged": "codex/goal-11-npc-tank-simulation-real-interface"
+  },
+  "integrationBoundary": "SMPP Runtime OTLP -> OpenTelemetry Collector",
+  "providedReadOnlyMetricsEndpoint": "http://192.168.1.7:19100/metrics",
+  "baselineGate": "PASS"
+}

@@ -23,6 +23,8 @@ function request(e) {
     'telemetry.source.trust_domain': 'local-compose',
     'telemetry.source.deployment_id': 'development'
   }) }, scopeLogs: [{ logRecords: [{ body: av(e), attributes: attrs({
+    'sdar.schema.name': e.schemaName,
+    'sdar.schema.version': e.schemaVersion,
     'sdar.record.id': e.recordId,
     'sdar.record.hash': e.recordHash,
     'telemetry.channel': 'smpp.provider_ops',

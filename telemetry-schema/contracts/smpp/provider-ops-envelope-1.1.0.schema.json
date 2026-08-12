@@ -24,8 +24,7 @@
       "const": "sdar.provider.ops.event"
     },
     "schemaVersion": {
-      "type": "string",
-      "pattern": "^1\\."
+      "const": "1.1.0"
     },
     "recordId": {
       "type": "string",
@@ -37,21 +36,48 @@
     },
     "recordType": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 128
+      "enum": [
+        "provider.task.lifecycle",
+        "provider.command.lifecycle",
+        "adapter.rpc",
+        "provider.scheduler.decision",
+        "provider.recovery.lifecycle",
+        "provider.ttl.lifecycle",
+        "provider.resource.state",
+        "provider.resource.metric",
+        "provider.resource.health",
+        "provider.execution.progress",
+        "provider.business_event.source.lifecycle",
+        "provider.business_event.ingest.lifecycle",
+        "provider.business_event.publication.lifecycle",
+        "provider.business_event.stream.lifecycle",
+        "provider.business_event.continuity",
+        "provider.business_event.delivery.lifecycle",
+        "provider.business_event.relation.lifecycle"
+      ]
     },
     "eventCategory": {
       "type": "string",
       "enum": [
-        "audit",
-        "diagnostic"
+        "task.lifecycle",
+        "command.lifecycle",
+        "command.dispatch",
+        "adapter.rpc",
+        "scheduler.decision",
+        "recovery.lifecycle",
+        "ttl.lifecycle",
+        "resource.state",
+        "resource.metric",
+        "resource.health",
+        "execution.progress",
+        "business_event.lifecycle"
       ]
     },
     "deliveryClass": {
       "type": "string",
       "enum": [
-        "durable",
-        "best_effort"
+        "audit",
+        "operational"
       ]
     },
     "providerId": {
@@ -75,7 +101,7 @@
     },
     "resourceId": {
       "type": "string",
-      "maxLength": 256
+      "maxLength": 512
     },
     "resourceType": {
       "type": "string",
@@ -95,11 +121,11 @@
     },
     "traceId": {
       "type": "string",
-      "maxLength": 64
+      "pattern": "^[a-f0-9]{32}$"
     },
     "spanId": {
       "type": "string",
-      "maxLength": 32
+      "pattern": "^[a-f0-9]{16}$"
     },
     "providerEventId": {
       "type": "string",

@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T10:36:25.366Z",
+  "repositorySha": "53a799d4c0166669411e61b816c6ed8ef63cc70f",
+  "workingBranch": "main",
+  "platformVersion": "0.3.0",
+  "architecture": [
+    "otel-collector",
+    "telemetry-processor",
+    "WAL",
+    "clickhouse",
+    "query-api",
+    "grafana"
+  ],
+  "collector": {
+    "image": "otel/opentelemetry-collector-contrib:0.157.0",
+    "receivers": [
+      "otlp/http",
+      "otlp/grpc"
+    ],
+    "providerOpsFilter": "sdar.record.id attribute is present",
+    "processorExporter": "OTLP/HTTP to http://telemetry-processor:8443/internal/otlp",
+    "queueEnabled": false,
+    "retryEnabled": false,
+    "prometheusRuntimeScrapeConfigured": false,
+    "externalTransport": "plaintext",
+    "internalTransport": "plaintext"
+  },
+  "processor": {
+    "otlpLogJson": true,
+    "otlpLogProtobuf": true,
+    "trustedCollectorAllowlist": true,
+    "schemaValidation": "hard-coded ProviderOps 1.1.0 rules",
+    "hashRecomputation": true,
+    "walAckBoundary": "append + file fsync before accepted response",
+    "duplicateClassification": "sourceSystem + recordId with recordHash equality",
+    "conflictClassification": "same sourceSystem + recordId with different recordHash",
+    "rejectedSummaryPersistence": false,
+    "normalizer": "smpp-provider-ops-v1",
+    "normalizerVersion": 1
+  },
+  "storage": {
+    "databases": [
+      "telemetry_meta",
+      "telemetry_landing",
+      "telemetry_normalized",
+      "telemetry_core",
+      "telemetry_serving"
+    ],
+    "landing": true,
+    "normalized": true,
+    "core": true,
+    "relation": true,
+    "serving": true,
+    "conflictTable": true,
+    "rejectedSummaryTable": true,
+    "normalizationDeadLetterTable": true,
+    "processorWritesRejectedSummary": false
+  },
+  "query": {
+    "recordLookup": true,
+    "taskTimeline": true,
+    "taskRelations": true,
+    "topology": true,
+    "providerHealth": true,
+    "resourceState": true,
+    "broadDimensionSearch": false,
+    "grafanaClickHouseDatasourceUsesExamplePassword": true
+  },
+  "deployment": {
+    "composeServicesPresent": [
+      "clickhouse",
+      "telemetry-processor",
+      "otel-collector",
+      "query-api",
+      "grafana"
+    ],
+    "processorImageRevisionLabel": false,
+    "queryApiImageRevisionLabel": false,
+    "qualificationProductionMtlsProfile": false,
+    "sourceMappingGeneratorUsesWildcards": true,
+    "queryHealthScriptMatchesImplementation": false,
+    "isolatedQualificationVolumes": false
+  },
+  "confirmedFindings": [
+    {
+      "id": "P0-CONTRACT-ENUM",
+      "classification": "SCHEMA_MISMATCH",
+      "evidence": "Both schema copies allow eventCategory audit|diagnostic and deliveryClass durable|best_effort, while local SMPP emits dotted event categories and audit|operational delivery classes."
+    },
+    {
+      "id": "P0-RUNTIME-VALIDATOR",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "validateEnvelope requires deliveryClass=durable and eventCategory=audit; the source-derived vector is rejected."
+    },
+    {
+      "id": "P0-RECORD-TYPES",
+      "classification": "SCHEMA_MISMATCH",
+      "evidence": "The allowlist contains resource.state but SMPP emits provider.resource.state; current Business Event record types are absent."
+    },
+    {
+      "id": "P0-TRACE-SPAN",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "Normalizer and landing mapper ignore canonical top-level traceId/spanId and read only nested attributes."
+    },
+    {
+      "id": "P0-MTLS",
+      "classification": "TRANSPORT_MISMATCH",
+      "evidence": "Documentation requires Runtime->Collector and Collector->Processor mTLS, but Compose exposes plaintext OTLP and configures a plaintext Processor exporter."
+    },
+    {
+      "id": "P0-WILDCARD-IDENTITY",
+      "classification": "CONFIG_MISMATCH",
+      "evidence": "generate-config.ts emits providerId=* and instanceId=* and the resolver accepts wildcards."
+    },
+    {
+      "id": "P0-PROMETHEUS-SCRAPE",
+      "classification": "CONFIG_MISMATCH",
+      "evidence": "The user-provided Runtime /metrics endpoint is reachable, but Collector has no Prometheus receiver or runtime metrics pipeline."
+    },
+    {
+      "id": "P1-OTLP-CROSS-CHECK",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "Processor does not require/cross-check sdar.schema.name and sdar.schema.version, and Collector marks any log with sdar.record.id as ProviderOps."
+    },
+    {
+      "id": "P1-LINEAGE",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "Canonical payload omits providerEventId/Sequence, eventType, execution mode/simulation, revisions, hashes, and top-level trace/span; landing omits several first-class fields."
+    },
+    {
+      "id": "P1-REJECTION-OBSERVABILITY",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "Invalid/hash/sensitive events are counted but no safe rejected summary is persisted even though a ClickHouse table exists."
+    },
+    {
+      "id": "P1-QUERY-DIMENSIONS",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "Query API lacks a bounded activity search across provider/resource/task/operation/runtime/deployment/record/trace/time dimensions."
+    },
+    {
+      "id": "P1-DEPLOYMENT",
+      "classification": "PLATFORM_DEFECT",
+      "evidence": "status.sh calls /health/live on Query API while the implementation exposes /health; the deployment test references a missing docs path; no image revision labels or qualification lifecycle exist."
+    }
+  ],
+  "baselineExecution": {
+    "dependenciesInstalled": false,
+    "testCommandRun": false,
+    "reason": "Repository has no installed node_modules or committed lockfile; dependencies will be installed after the pre-code Gap Matrix is recorded.",
+    "existingPlatformContainers": false,
+    "unrelatedDockerContainersPreserved": true
+  },
+  "baselineStatus": "AUDITED_WITH_CONFIRMED_P0_GAPS"
+}

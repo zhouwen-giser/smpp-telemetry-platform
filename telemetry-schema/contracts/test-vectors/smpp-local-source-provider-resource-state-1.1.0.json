@@ -1,0 +1,36 @@
+{
+  "sourceRepository": "zhouwen-giser/sdar-mcp-provider-platform",
+  "sourceBranch": "codex/goal-11-npc-tank-simulation-real-interface",
+  "sourceSha": "678521e35c83793a59e045ef9bf59b4df842962e",
+  "stableComparisonSha": "cce7ea0cb0fe1b13328a48189a76d9b1688f49f4",
+  "generator": "packages/observability/src/event-envelope.ts#createProviderOpsEnvelope",
+  "envelope": {
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "recordId": "6eb4e972-be6e-5708-98ef-95dd5f263b96",
+    "recordType": "provider.resource.state",
+    "eventCategory": "resource.state",
+    "deliveryClass": "audit",
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "runtimeVersion": "2.0.0-rc.1",
+    "instanceId": "production-ugv-direct-1",
+    "resourceId": "ugv-01",
+    "resourceType": "ugv",
+    "providerEventId": "source-vector-001",
+    "providerEventSequence": 1,
+    "eventType": "resource.state",
+    "traceId": "0123456789abcdef0123456789abcdef",
+    "spanId": "0123456789abcdef",
+    "attributes": {
+      "source": "provider_telemetry_ingress"
+    },
+    "payload": {
+      "state": "ready",
+      "reasonCode": "HEALTHY"
+    },
+    "occurredAt": "2026-08-12T08:00:00.000Z",
+    "emittedAt": "2026-08-12T08:00:00.250Z",
+    "recordHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee"
+  },
+  "expectedRecordHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee"
+}

@@ -5,4 +5,5 @@ cd "$ROOT"
 docker compose ps
 printf '\n健康检查：\n'
 curl -fsS http://127.0.0.1:13133/ >/dev/null && echo 'Collector: OK' || echo 'Collector: ERROR'
-curl -fsS "http://127.0.0.1:${QUERY_API_PORT:-8088}/health/live" >/dev/null && echo 'Query API: OK' || echo 'Query API: ERROR'
+curl -fsS "http://127.0.0.1:${QUERY_API_PORT:-8088}/health" >/dev/null && echo 'Query API: OK' || echo 'Query API: ERROR'
+curl -fsS http://127.0.0.1:9464/metrics | grep -q 'sdar_runtime_info' && echo 'SMPP Prometheus scrape: OK' || echo 'SMPP Prometheus scrape: ERROR'

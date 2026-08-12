@@ -1,0 +1,66 @@
+services:
+  clickhouse:
+    ports: !reset []
+  telemetry-processor:
+    environment:
+      PROCESSOR_TLS_MODE: required
+      PROCESSOR_TLS_CA_FILE: /run/secrets/collector_client_ca
+      PROCESSOR_TLS_CERT_FILE: /run/secrets/processor_server_cert
+      PROCESSOR_TLS_KEY_FILE: /run/secrets/processor_server_key
+    secrets:
+      - clickhouse_password
+      - processor_admin_key
+      - collector_client_ca
+      - processor_server_cert
+      - processor_server_key
+      - processor_server_ca
+      - collector_client_cert
+      - collector_client_key
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const https=require('https'),fs=require('fs');const request=https.get({hostname:'telemetry-processor',port:8443,path:'/health/live',servername:'telemetry-processor',ca:fs.readFileSync('/run/secrets/processor_server_ca'),cert:fs.readFileSync('/run/secrets/collector_client_cert'),key:fs.readFileSync('/run/secrets/collector_client_key')},response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1));"
+  otel-collector:
+    user: "${TELEMETRY_SECRET_UID:-1000}:${TELEMETRY_SECRET_GID:-1000}"
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./telemetry-collector/config/gateway-mtls.yaml:/etc/otelcol-contrib/config.yaml:ro
+    secrets:
+      - runtime_client_ca
+      - collector_server_cert
+      - collector_server_key
+      - processor_server_ca
+      - collector_client_cert
+      - collector_client_key
+  query-api:
+    environment:
+      QUERY_API_KEY_FILE: /run/secrets/query_api_key
+    secrets:
+      - clickhouse_password
+      - query_api_key
+  grafana:
+    ports: !reset []
+
+secrets:
+  runtime_client_ca:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/runtime-client-ca.pem
+  collector_server_cert:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/collector-server.pem
+  collector_server_key:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/collector-server-key.pem
+  processor_server_ca:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/processor-server-ca.pem
+  collector_client_cert:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/collector-client.pem
+  collector_client_key:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/collector-client-key.pem
+  collector_client_ca:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/collector-client-ca.pem
+  processor_server_cert:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/processor-server.pem
+  processor_server_key:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/processor-server-key.pem
+  query_api_key:
+    file: ${QUALIFICATION_SECRET_DIR:?QUALIFICATION_SECRET_DIR is required}/query-api-key.txt

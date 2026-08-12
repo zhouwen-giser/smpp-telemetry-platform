@@ -3,11 +3,22 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const HASH = /^[a-f0-9]{64}$/;
 export const ALLOWED_TYPES = new Set([
   'provider.task.lifecycle','provider.command.lifecycle','adapter.rpc','provider.scheduler.decision',
-  'provider.recovery.lifecycle','provider.ttl.lifecycle','provider.authorization.decision',
-  'provider.configuration.changed','resource.state','resource.metric','resource.health',
-  'execution.progress','resource.measurement.fact'
+  'provider.recovery.lifecycle','provider.ttl.lifecycle','provider.resource.state',
+  'provider.resource.metric','provider.resource.health','provider.execution.progress',
+  'provider.business_event.source.lifecycle','provider.business_event.ingest.lifecycle',
+  'provider.business_event.publication.lifecycle','provider.business_event.stream.lifecycle',
+  'provider.business_event.continuity','provider.business_event.delivery.lifecycle',
+  'provider.business_event.relation.lifecycle'
 ]);
-const FORBIDDEN_KEY = /(authorization(?!ContextHash)|cookie|password|api.?key|secret|private.?key|database.?url|connection.?string|stack|cause|raw.?input|raw.?answer)/i;
+export const ALLOWED_EVENT_CATEGORIES = new Set([
+  'task.lifecycle','command.lifecycle','command.dispatch','adapter.rpc','scheduler.decision',
+  'recovery.lifecycle','ttl.lifecycle','resource.state','resource.metric','resource.health',
+  'execution.progress','business_event.lifecycle'
+]);
+export const ALLOWED_DELIVERY_CLASSES = new Set(['audit','operational']);
+const TRACE_ID = /^[a-f0-9]{32}$/;
+const SPAN_ID = /^[a-f0-9]{16}$/;
+const FORBIDDEN_KEY = /(authorization(?!ContextHash)|cookie|password|passwd|api.?key|secret|private.?key|database.?url|connection.?string|token|jwt|stack|cause|raw.?input|raw.?answer|adapter.?payload)/i;
 const FORBIDDEN_VALUE = /(-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+\/-]+=*|(?:postgres|mysql|mongodb(?:\+srv)?):\/\/[^\s]+:[^\s]+@)/i;
 function scan(value, state, depth = 0) {
   if (depth > state.maxDepth) throw Object.assign(new Error('PAYLOAD_TOO_DEEP'), { code: 'PAYLOAD_TOO_DEEP' });
@@ -30,7 +41,11 @@ export function validateTrustedIngress(logRecord, { requireCollectorId = true, a
   const collectorId = String(attrs['telemetry.source.collector_id'] ?? '');
   if (requireCollectorId && !collectorId) return { ok:false, code:'COLLECTOR_ID_REQUIRED' };
   if (allowedCollectorIds.length && !allowedCollectorIds.includes(collectorId)) return { ok:false, code:'COLLECTOR_ID_NOT_ALLOWED' };
-  return { ok:true, context:{ collectorId, trustDomain:String(attrs['telemetry.source.trust_domain']??''), deploymentId:String(attrs['telemetry.source.deployment_id']??logRecord.resource?.['deployment.environment']??''), ingressMode:String(attrs['telemetry.ingress.mode']??'gateway') } };
+  const trustDomain=String(attrs['telemetry.source.trust_domain']??'');
+  const deploymentId=String(attrs['telemetry.source.deployment_id']??'');
+  if (!trustDomain) return { ok:false, code:'TRUST_DOMAIN_REQUIRED' };
+  if (!deploymentId) return { ok:false, code:'DEPLOYMENT_ID_REQUIRED' };
+  return { ok:true, context:{ collectorId, trustDomain, deploymentId, ingressMode:String(attrs['telemetry.ingress.mode']??'gateway') } };
 }
 export function validateEnvelope(envelope, otlpAttributes = {}, limits = {}) {
   const fail = (code, message = code) => ({ ok:false, code, message });
@@ -42,11 +57,19 @@ export function validateEnvelope(envelope, otlpAttributes = {}, limits = {}) {
   if (!UUID.test(String(envelope.recordId))) return fail('RECORD_ID_INVALID');
   if (!HASH.test(String(envelope.recordHash))) return fail('RECORD_HASH_INVALID');
   if (!ALLOWED_TYPES.has(String(envelope.recordType))) return fail('RECORD_TYPE_UNSUPPORTED');
-  if (envelope.deliveryClass !== 'durable' || envelope.eventCategory !== 'audit') return fail('DELIVERY_CLASS_INVALID');
+  if (!ALLOWED_EVENT_CATEGORIES.has(String(envelope.eventCategory))) return fail('EVENT_CATEGORY_UNSUPPORTED');
+  if (!ALLOWED_DELIVERY_CLASSES.has(String(envelope.deliveryClass))) return fail('DELIVERY_CLASS_UNSUPPORTED');
   if (!envelope.providerId || !envelope.instanceId) return fail('SOURCE_IDENTITY_MISSING');
+  if (envelope.traceId !== undefined && !TRACE_ID.test(String(envelope.traceId))) return fail('TRACE_ID_INVALID');
+  if (envelope.spanId !== undefined && !SPAN_ID.test(String(envelope.spanId))) return fail('SPAN_ID_INVALID');
   if (Number.isNaN(Date.parse(envelope.occurredAt)) || Number.isNaN(Date.parse(envelope.emittedAt))) return fail('TIMESTAMP_INVALID');
-  if (otlpAttributes['sdar.record.id'] && otlpAttributes['sdar.record.id'] !== envelope.recordId) return fail('OTLP_RECORD_ID_MISMATCH');
-  if (otlpAttributes['sdar.record.hash'] && otlpAttributes['sdar.record.hash'] !== envelope.recordHash) return fail('OTLP_RECORD_HASH_MISMATCH');
+  for (const key of ['sdar.schema.name','sdar.schema.version','sdar.record.id','sdar.record.hash']) {
+    if (otlpAttributes[key] === undefined || otlpAttributes[key] === '') return fail('OTLP_CONTRACT_ATTRIBUTE_MISSING',key);
+  }
+  if (otlpAttributes['sdar.schema.name'] !== envelope.schemaName) return fail('OTLP_SCHEMA_NAME_MISMATCH');
+  if (otlpAttributes['sdar.schema.version'] !== envelope.schemaVersion) return fail('OTLP_SCHEMA_VERSION_MISMATCH');
+  if (otlpAttributes['sdar.record.id'] !== envelope.recordId) return fail('OTLP_RECORD_ID_MISMATCH');
+  if (otlpAttributes['sdar.record.hash'] !== envelope.recordHash) return fail('OTLP_RECORD_HASH_MISMATCH');
   if (otlpAttributes['telemetry.contract.version'] && otlpAttributes['telemetry.contract.version'] !== envelope.schemaVersion) return fail('OTLP_SCHEMA_VERSION_MISMATCH');
   if (calculateProviderOpsRecordHash(envelope) !== envelope.recordHash) return fail('RECORD_HASH_MISMATCH');
   try { scan(envelope,{nodes:0,maxDepth:limits.maxDepth??12,maxNodes:limits.maxNodes??5000,maxStringLength:limits.maxStringLength??16384,maxArrayLength:limits.maxArrayLength??1000,maxObjectProperties:limits.maxObjectProperties??500}); }

@@ -11,4 +11,10 @@ datasources:
       username: default
       defaultDatabase: telemetry_serving
     secureJsonData:
-      password: change-me
+      password: ${CLICKHOUSE_PASSWORD}
+  - name: SMPP Runtime Metrics
+    uid: smpp-runtime-prometheus
+    type: prometheus
+    access: proxy
+    url: http://otel-collector:9464
+    isDefault: false

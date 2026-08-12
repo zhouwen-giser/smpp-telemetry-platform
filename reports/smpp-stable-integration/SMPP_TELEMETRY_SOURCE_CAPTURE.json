@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T10:33:11.522Z",
+  "source": {
+    "repository": "zhouwen-giser/sdar-mcp-provider-platform",
+    "primaryBranch": "codex/goal-11-npc-tank-simulation-real-interface",
+    "primarySha": "678521e35c83793a59e045ef9bf59b4df842962e",
+    "stableComparisonSha": "cce7ea0cb0fe1b13328a48189a76d9b1688f49f4",
+    "contractDriftFromStableComparison": false,
+    "deploymentDriftFromStableComparison": true,
+    "deploymentDriftSummary": "The local branch wires configurable plaintext intranet OTLP/HTTP export into UGV/NPC production bundles; ProviderOps envelope, hashing, ingress, and exporter code are unchanged."
+  },
+  "runtime": {
+    "runtimeVersion": "2.0.0-rc.1",
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "integrationBoundary": "SMPP Runtime OTLP/HTTP -> OpenTelemetry Collector",
+    "prometheusBoundary": "OpenTelemetry Collector Prometheus receiver -> SMPP Runtime /metrics"
+  },
+  "recordIdentity": {
+    "recordIdAlgorithm": "UUIDv5(SHA-1 standardized name mapping)",
+    "recordNamespace": "670c4482-8e75-58ae-a0d9-60c923de6432",
+    "recordNameMaterial": "RFC8785-style canonical JSON array [recordType, stableAggregateIdentity, eventIdentity, revision ?? null]",
+    "recordHashAlgorithm": "lowercase hex SHA-256 over canonical JSON object",
+    "recordHashExcludedTopLevelFields": [
+      "recordHash",
+      "emittedAt",
+      "instanceId",
+      "exportRetryCount",
+      "collectorTimestamp",
+      "exporterHost"
+    ]
+  },
+  "signals": {
+    "protocol": "OTLP/HTTP",
+    "paths": {
+      "logs": "/v1/logs",
+      "traces": "/v1/traces",
+      "metrics": "/v1/metrics"
+    },
+    "resourceAttributes": [
+      "service.name",
+      "service.version",
+      "service.instance.id",
+      "deployment.environment.name",
+      "sdar.provider.id",
+      "sdar.provider.version"
+    ],
+    "providerOpsLogAttributes": [
+      "sdar.schema.name",
+      "sdar.schema.version",
+      "sdar.record.id",
+      "sdar.record.hash"
+    ],
+    "auditOnlyLogAttribute": "sdar.delivery.class",
+    "body": "canonical ProviderOpsEnvelope JSON object"
+  },
+  "recordTypes": [
+    "provider.task.lifecycle",
+    "provider.command.lifecycle",
+    "provider.scheduler.decision",
+    "provider.recovery.lifecycle",
+    "provider.ttl.lifecycle",
+    "provider.resource.state",
+    "provider.resource.metric",
+    "provider.resource.health",
+    "provider.execution.progress",
+    "provider.business_event.source.lifecycle",
+    "provider.business_event.ingest.lifecycle",
+    "provider.business_event.publication.lifecycle",
+    "provider.business_event.stream.lifecycle",
+    "provider.business_event.continuity",
+    "provider.business_event.delivery.lifecycle",
+    "provider.business_event.relation.lifecycle"
+  ],
+  "eventCategories": [
+    "task.lifecycle",
+    "command.lifecycle",
+    "command.dispatch",
+    "scheduler.decision",
+    "recovery.lifecycle",
+    "ttl.lifecycle",
+    "resource.state",
+    "resource.metric",
+    "resource.health",
+    "execution.progress",
+    "business_event.lifecycle"
+  ],
+  "deliveryClasses": [
+    "audit",
+    "operational"
+  ],
+  "providerIngressEventTypes": [
+    "RESOURCE_STATE",
+    "RESOURCE_METRIC",
+    "RESOURCE_HEALTH",
+    "EXECUTION_PROGRESS"
+  ],
+  "lineage": {
+    "topLevelOptionalFields": [
+      "taskId",
+      "resourceId",
+      "resourceType",
+      "externalExecutionId",
+      "operationName",
+      "correlationId",
+      "traceId",
+      "spanId",
+      "providerEventId",
+      "providerEventSequence",
+      "eventType",
+      "executionMode",
+      "simulationId",
+      "argumentHash",
+      "authorizationContextHash",
+      "adapterRevision",
+      "observationRevision",
+      "commandSequence"
+    ],
+    "traceSemantics": "A valid provider traceparent supplies top-level traceId/spanId; the persisted task traceId is fallback for traceId and is retained as attributes.linkedTaskTraceId when present.",
+    "timestampSemantics": "occurredAt is source-authoritative and normalized to ISO-8601; emittedAt is delivery time. Audit OTLP LogRecord timestamp is occurredAt. Consumers must keep receive/normalization times separate."
+  },
+  "validationAndRedaction": {
+    "maxBatch": 100,
+    "maxEventBytes": 65536,
+    "maxDepth": 16,
+    "maxNodes": 4096,
+    "maxAttributeKeyLength": 128,
+    "maxResourceIdLength": 512,
+    "maxTimestampSkewMs": 86400000,
+    "defaultRateLimitPerMinute": 600,
+    "payloadPolicy": "event-type allowlist followed by recursive sanitizer",
+    "sensitiveKeyClasses": [
+      "password",
+      "secret",
+      "api key",
+      "cookie",
+      "authorization",
+      "token",
+      "jwt",
+      "raw argument/input/answer/adapter payload"
+    ],
+    "allowedSensitiveHashes": [
+      "argumentHash",
+      "authorizationContextHash"
+    ]
+  },
+  "runtimeOtlpConfigKeys": [
+    "OTEL_ENABLED",
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_TLS_MODE",
+    "OTEL_EXPORTER_OTLP_CA_PATH",
+    "OTEL_EXPORTER_OTLP_CERT_PATH",
+    "OTEL_EXPORTER_OTLP_KEY_PATH",
+    "OTEL_EXPORTER_OTLP_HEADERS_FILE",
+    "OTEL_EXPORTER_OTLP_TIMEOUT_MS",
+    "OTEL_SERVICE_INSTANCE_ID"
+  ],
+  "sourceDerivedVector": {
+    "path": "telemetry-schema/contracts/test-vectors/smpp-local-source-provider-resource-state-1.1.0.json",
+    "recordId": "6eb4e972-be6e-5708-98ef-95dd5f263b96",
+    "recordHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee",
+    "sourceRecomputedHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee",
+    "hashParity": true
+  },
+  "livePrometheusCapture": {
+    "endpoint": "http://192.168.1.7:19100/metrics",
+    "credentialsRequired": false,
+    "reachable": true,
+    "format": "Prometheus text exposition",
+    "bytes": 3234,
+    "lines": 41,
+    "sha256": "8a29b376c31d0c52fe1236f748e158a47c4a1cadf0aa9c27da961bf6ad9310ca",
+    "runtimeVersionObserved": "2.0.0-rc.1",
+    "metricFamiliesObserved": [
+      "sdar_adapter_rpc_total",
+      "sdar_business_event_active_relation_tokens",
+      "sdar_business_event_finalized_total",
+      "sdar_business_event_inbox_backlog",
+      "sdar_business_event_oldest_pending_mapping_age_seconds",
+      "sdar_business_event_publication_barrier_waiting",
+      "sdar_business_event_source_blocked_total",
+      "sdar_business_event_source_received_total",
+      "sdar_business_event_source_rejected_total",
+      "sdar_outbox_pending",
+      "sdar_recovery_total",
+      "sdar_runtime_info",
+      "sdar_tool_call_duration_seconds_count",
+      "sdar_tool_call_duration_seconds_sum",
+      "sdar_tool_calls_total",
+      "telemetry_audit_backlog",
+      "telemetry_audit_oldest_age_seconds",
+      "telemetry_audit_retry_total"
+    ],
+    "operationalObservation": {
+      "telemetryAuditBacklog": 143399,
+      "telemetryAuditRetryTotal": 2163655,
+      "interpretation": "The Runtime has a large audit export backlog at capture time; this is environment evidence that OTLP delivery is not currently succeeding, not a schema defect."
+    }
+  },
+  "sourceContractStatus": "SOURCE_CONTRACT_READY"
+}

@@ -21,12 +21,14 @@
     "start:query-api": "node dist/telemetry-dashboard/query-api/src/index.js",
     "migrate": "node dist/telemetry-schema/tools/migrate.js",
     "send:sample": "node dist/tools/send-sample.js",
+    "render:source-vector": "node dist/tools/render-source-vector-otlp.js",
     "backfill:v01": "node dist/telemetry-schema/tools/backfill-v01.js",
     "test": "npm run build && node --test dist/telemetry-processor/test/*.test.js dist/telemetry-collector/tests/*.test.js dist/telemetry-dashboard/query-api/test/*.test.js dist/telemetry-schema/tools/*.test.js",
     "check": "npm run test",
     "manifest": "npm run build && node dist/tools/create-manifest.js"
   },
   "devDependencies": {
+    "@types/node": "22.20.1",
     "typescript": "5.8.3"
   },
   "license": "Apache-2.0"

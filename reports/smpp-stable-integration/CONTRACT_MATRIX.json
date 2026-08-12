@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0",
+  "createdAt": "2026-08-12T10:36:25.366Z",
+  "sourceSha": "678521e35c83793a59e045ef9bf59b4df842962e",
+  "telemetryBaseSha": "53a799d4c0166669411e61b816c6ed8ef63cc70f",
+  "entries": [
+    {
+      "area": "schema identity",
+      "source": "sdar.provider.ops.event / 1.1.0",
+      "platform": "exact name, exact version in body; Collector injects contract version",
+      "classification": "CONFIG_MISMATCH",
+      "remediation": "Require and cross-check sdar.schema.name/version/id/hash OTLP attributes without overwriting source contract identity."
+    },
+    {
+      "area": "eventCategory",
+      "source": "dotted semantic categories including resource.state and business_event.lifecycle",
+      "platform": "audit|diagnostic",
+      "classification": "SCHEMA_MISMATCH",
+      "remediation": "Align both schema copies and bounded runtime validation to current source categories."
+    },
+    {
+      "area": "deliveryClass",
+      "source": "audit|operational",
+      "platform": "durable|best_effort schema; validator requires durable",
+      "classification": "SCHEMA_MISMATCH",
+      "remediation": "Accept only current source audit|operational values; keep fail-closed validation."
+    },
+    {
+      "area": "recordType",
+      "source": "provider.* record types including Provider ingress and Business Events",
+      "platform": "mixed legacy/unprefixed allowlist",
+      "classification": "SCHEMA_MISMATCH",
+      "remediation": "Use a bounded current-source allowlist and update core projection aliases."
+    },
+    {
+      "area": "canonical hash",
+      "source": "SHA-256 over canonical JSON excluding six delivery fields",
+      "platform": "same algorithm and exclusions",
+      "classification": "MATCH",
+      "remediation": "Add pinned source-derived parity vector to prevent drift."
+    },
+    {
+      "area": "top-level trace/span",
+      "source": "traceId/spanId are first-class optional fields",
+      "platform": "normalizer and landing only inspect nested attributes",
+      "classification": "PLATFORM_DEFECT",
+      "remediation": "Give top-level values first priority and preserve them through landing, canonical payload, core, and query."
+    },
+    {
+      "area": "source lineage",
+      "source": "provider/runtime/task/resource/execution/operation/provider-event/revisions/timestamps",
+      "platform": "subset retained",
+      "classification": "PLATFORM_DEFECT",
+      "remediation": "Preserve emitted first-class values verbatim; absent values remain null/absent."
+    },
+    {
+      "area": "OTLP ProviderOps selection",
+      "source": "LogRecord body plus sdar.schema.name/version and sdar.record.id/hash",
+      "platform": "Collector only tests sdar.record.id and then injects ProviderOps channel",
+      "classification": "TRANSPORT_MISMATCH",
+      "remediation": "Filter on the full canonical attribute tuple and require body/attribute cross-checks."
+    },
+    {
+      "area": "Runtime metrics pull",
+      "source": "Prometheus text at 192.168.1.7:19100/metrics without credentials",
+      "platform": "no Prometheus receiver",
+      "classification": "CONFIG_MISMATCH",
+      "remediation": "Add an explicitly identified Prometheus scrape pipeline and live read-only smoke."
+    },
+    {
+      "area": "Runtime to Collector security",
+      "source": "production HTTPS/mTLS supported and required",
+      "platform": "default plaintext only; docs mention unsupported env knobs",
+      "classification": "TRANSPORT_MISMATCH",
+      "remediation": "Separate development from qualification/production Collector configs and mount exact CA/server certificate/key."
+    },
+    {
+      "area": "Collector to Processor security",
+      "source": "internal trusted boundary must be bounded",
+      "platform": "plaintext Compose exporter; Processor mTLS code unused",
+      "classification": "TRANSPORT_MISMATCH",
+      "remediation": "Qualification profile uses Collector client mTLS and Processor server mTLS with no skip-verify."
+    },
+    {
+      "area": "source mapping",
+      "source": "isr.vehicle.ugv.ugv1 / production-ugv-direct-1",
+      "platform": "generated providerId=* / instanceId=*",
+      "classification": "CONFIG_MISMATCH",
+      "remediation": "Require exact provider/runtime instance values in qualification; reject wildcard generation there."
+    },
+    {
+      "area": "WAL ACK boundary",
+      "source": "audit exporter retries until Collector success",
+      "platform": "file fsync precedes success response and exact duplicate is idempotent",
+      "classification": "MATCH",
+      "remediation": "Add restart/outage/conflict qualification evidence."
+    },
+    {
+      "area": "invalid/conflict observability",
+      "source": "bounded rejects and duplicate conflicts are explicit",
+      "platform": "conflicts persist; invalid/sensitive rejects are metrics-only",
+      "classification": "PLATFORM_DEFECT",
+      "remediation": "Persist a safe metadata-only reject summary without raw secret-bearing input."
+    },
+    {
+      "area": "storage/query",
+      "source": "current first-class dimensions",
+      "platform": "four storage layers exist; broad dimension query absent",
+      "classification": "PLATFORM_DEFECT",
+      "remediation": "Extend compatible schema/projections and add bounded dimension search plus Grafana coverage."
+    },
+    {
+      "area": "live ProviderOps",
+      "source": "Runtime shows audit backlog 143399 and retry total 2163655",
+      "platform": "not deployed at capture time",
+      "classification": "SOURCE_UNAVAILABLE",
+      "remediation": "Deploy Collector first, observe backlog/read-only flow, and mark live OTLP partial if external Runtime remains pointed elsewhere."
+    }
+  ]
+}

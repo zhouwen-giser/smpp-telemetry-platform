@@ -3,8 +3,16 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+        tls:
+          cert_file: /run/secrets/collector_server_cert
+          key_file: /run/secrets/collector_server_key
+          client_ca_file: /run/secrets/runtime_client_ca
       http:
         endpoint: 0.0.0.0:4318
+        tls:
+          cert_file: /run/secrets/collector_server_cert
+          key_file: /run/secrets/collector_server_key
+          client_ca_file: /run/secrets/runtime_client_ca
   prometheus/smpp_runtime:
     config:
       scrape_configs:
@@ -44,7 +52,7 @@ processors:
         value: ${env:SMPP_DEPLOYMENT_ID}
         action: upsert
       - key: telemetry.ingress.mode
-        value: gateway
+        value: gateway-mtls
         action: upsert
   transform/provider_ops_contract:
     error_mode: propagate
@@ -74,9 +82,13 @@ processors:
 
 exporters:
   otlphttp/processor_provider_ops:
-    endpoint: http://telemetry-processor:8443/internal/otlp
+    endpoint: https://telemetry-processor:8443/internal/otlp
     compression: none
     timeout: 10s
+    tls:
+      ca_file: /run/secrets/processor_server_ca
+      cert_file: /run/secrets/collector_client_cert
+      key_file: /run/secrets/collector_client_key
     sending_queue:
       enabled: false
     retry_on_failure:

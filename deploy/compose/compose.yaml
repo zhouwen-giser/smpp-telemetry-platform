@@ -22,6 +22,8 @@ services:
     build:
       context: .
       dockerfile: telemetry-processor/Dockerfile
+      args:
+        VCS_REF: ${TELEMETRY_IMAGE_REVISION:-development}
     restart: unless-stopped
     depends_on:
       clickhouse: { condition: service_healthy }
@@ -55,11 +57,16 @@ services:
       SMPP_DEPLOYMENT_ID: ${SMPP_DEPLOYMENT_ID:-development}
       COLLECTOR_ID: ${COLLECTOR_ID:-smpp-gateway-1}
       TRUST_DOMAIN: ${TRUST_DOMAIN:-local-compose}
+      SMPP_PROVIDER_ID: ${SMPP_PROVIDER_ID:-isr.vehicle.ugv.ugv1}
+      SMPP_RUNTIME_INSTANCE_ID: ${SMPP_RUNTIME_INSTANCE_ID:-production-ugv-direct-1}
+      SMPP_METRICS_TARGET: ${SMPP_METRICS_TARGET:-192.168.1.7:19100}
+      SMPP_METRICS_PATH: ${SMPP_METRICS_PATH:-/metrics}
+      SMPP_METRICS_SCRAPE_INTERVAL: ${SMPP_METRICS_SCRAPE_INTERVAL:-15s}
     depends_on:
       telemetry-processor: { condition: service_healthy }
     volumes:
       - ./telemetry-collector/config/gateway.yaml:/etc/otelcol-contrib/config.yaml:ro
-    ports: ["${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_PORT:-4318}:4318", "13133:13133", "8888:8888"]
+    ports: ["${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_PORT:-4318}:4318", "13133:13133", "8888:8888", "9464:9464"]
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
       interval: 10s
@@ -70,6 +77,8 @@ services:
     build:
       context: .
       dockerfile: telemetry-dashboard/query-api/Dockerfile
+      args:
+        VCS_REF: ${TELEMETRY_IMAGE_REVISION:-development}
     restart: unless-stopped
     depends_on:
       clickhouse: { condition: service_healthy }
@@ -90,6 +99,11 @@ services:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -euc
+      - 'export CLICKHOUSE_PASSWORD="$$(cat /run/secrets/clickhouse_password)"; exec /run.sh'
+    secrets: [clickhouse_password]
     volumes:
       - ./telemetry-dashboard/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./telemetry-dashboard/grafana/dashboards:/var/lib/grafana/dashboards:ro

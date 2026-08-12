@@ -11,6 +11,8 @@ COPY deploy/bin ./deploy/bin
 RUN npm install --include=dev --ignore-scripts && npm run build
 
 FROM node:22-alpine
+ARG VCS_REF=development
+LABEL org.opencontainers.image.revision=$VCS_REF
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist

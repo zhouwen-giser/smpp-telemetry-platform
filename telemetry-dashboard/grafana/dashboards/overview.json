@@ -42,6 +42,26 @@
         "x": 0,
         "y": 10
       }
+    },
+    {
+      "type": "timeseries",
+      "title": "SMPP Runtime telemetry audit backlog",
+      "datasource": {
+        "uid": "smpp-runtime-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "telemetry_audit_backlog",
+          "legendFormat": "{{telemetry_source_runtime_instance_id}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      }
     }
   ]
 }

@@ -1,19 +1,27 @@
 {
   "version": 3,
+  "serviceInventory": [
+    {
+      "name": "sdar-ugv-runtime",
+      "address": "http://192.168.1.7:19100"
+    }
+  ],
   "mappings": [
     {
-      "collectorId": "smpp-gateway-1",
-      "trustDomain": "local-compose",
-      "deploymentId": "development",
+      "collectorId": "smpp-gateway-ugv-1",
+      "trustDomain": "sdar-ugv-runtime-mtls",
+      "deploymentId": "production-ugv-direct",
       "providerId": "isr.vehicle.ugv.ugv1",
       "instanceId": "production-ugv-direct-1",
       "tenantId": "tenant-local",
       "projectId": "smpp-local",
-      "environment": "development",
+      "environment": "qualification",
       "sourceProduct": "sdar-mcp-provider-platform",
       "mappingVersion": 3,
       "policyVersion": 1,
-      "projectionRouteIds": ["standalone-smpp"],
+      "projectionRouteIds": [
+        "standalone-smpp"
+      ],
       "status": "active",
       "validFrom": "2026-01-01T00:00:00Z",
       "validTo": null
