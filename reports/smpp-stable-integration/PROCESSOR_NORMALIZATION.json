@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "normalizer": {
+    "id": "smpp-provider-ops-v1",
+    "version": 2,
+    "sourceSystem": "smpp",
+    "canonicalTraceSpanPriority": "top-level traceId/spanId before nested fallback",
+    "sourceTimestamps": {
+      "occurredAtRewritten": false,
+      "emittedAtRewritten": false,
+      "receivedAtSeparate": true,
+      "normalizedAtSeparate": true
+    },
+    "firstClassLineagePreserved": [
+      "providerId", "runtimeVersion", "instanceId", "taskId", "resourceId",
+      "resourceType", "externalExecutionId", "operationName", "providerEventId",
+      "providerEventSequence", "eventType", "executionMode", "simulationId",
+      "adapterRevision", "observationRevision", "commandSequence", "traceId", "spanId"
+    ],
+    "missingSourceValuesFabricated": false,
+    "exactDeploymentIdentityRequired": true,
+    "stableFactHashExcludesProcessingTime": true
+  },
+  "sourceVector": {
+    "recordId": "6eb4e972-be6e-5708-98ef-95dd5f263b96",
+    "landingTraceId": "0123456789abcdef0123456789abcdef",
+    "landingSpanId": "0123456789abcdef",
+    "runtimeInstanceId": "production-ugv-direct-1",
+    "deploymentId": "production-ugv-direct",
+    "providerEventId": "source-vector-001"
+  },
+  "status": "NORMALIZATION_READY"
+}

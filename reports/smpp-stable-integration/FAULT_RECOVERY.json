@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "tests": [
+    {"name": "exact duplicate replay", "result": "PASS", "evidence": "one canonical row after two identical sends"},
+    {"name": "record hash conflict", "result": "PASS", "evidence": "HTTP exporter failure and one isolated conflict row"},
+    {"name": "Processor restart", "result": "PASS", "evidence": "read-only smoke passed after restart"},
+    {"name": "Collector restart", "result": "PASS", "evidence": "read-only smoke passed after restart"},
+    {"name": "ClickHouse outage", "result": "PASS", "evidence": "pending=1 during outage; landing/normalized/core each recovered to one row"},
+    {"name": "malformed envelope", "result": "PASS", "evidence": "REQUIRED_FIELD_MISSING summary"},
+    {"name": "oversized field", "result": "PASS", "evidence": "STRING_TOO_LONG summary"},
+    {"name": "sensitive input", "result": "PASS", "evidence": "SENSITIVE_KEY_DETECTED summary with no raw value"},
+    {"name": "partial WAL tail", "result": "PASS", "evidence": "unit recovery truncates partial tail without losing accepted entry"}
+  ],
+  "canonicalCorruptionObserved": false,
+  "status": "RESILIENCE_READY"
+}

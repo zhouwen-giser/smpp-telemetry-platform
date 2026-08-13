@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "project": "smpp-telemetry-goal01-qualification",
+  "telemetrySha": "5ff2a4e5b2fd8066fdbb22f98bb9c68b0788a926",
+  "services": {
+    "clickhouse": "healthy",
+    "telemetryMigrate": "exited_0",
+    "telemetryProcessor": "healthy",
+    "otelCollector": "healthy",
+    "queryApi": "running_and_smoke_passed",
+    "grafana": "running"
+  },
+  "images": {
+    "processor": "sha256:e90e9b04b41c6acc18e4ce2af8bdc1c649ef9e3794b01e62d65d7a5462c5f0c6",
+    "queryApi": "sha256:949d33852745c7017072ec2b53c2cd889ba81e6e76bf09e449b17541b8266137",
+    "collector": "otel/opentelemetry-collector-contrib@sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6"
+  },
+  "ociRevision": {
+    "processor": "5ff2a4e5b2fd8066fdbb22f98bb9c68b0788a926",
+    "queryApi": "5ff2a4e5b2fd8066fdbb22f98bb9c68b0788a926"
+  },
+  "publishedPorts": {
+    "otlpGrpc": "127.0.0.1:14317",
+    "otlpHttp": "127.0.0.1:14318",
+    "collectorHealth": "127.0.0.1:13133",
+    "runtimeMetricsProjection": "127.0.0.1:9464",
+    "queryApi": "127.0.0.1:18088"
+  },
+  "qualification": {
+    "preflight": "PASS",
+    "initialSmoke": "PASS",
+    "processorRestartSmoke": "PASS",
+    "collectorRestartSmoke": "PASS",
+    "sideEffectsEnabled": false
+  },
+  "status": "DEPLOYMENT_READY"
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "telemetrySha": "5ff2a4e5b2fd8066fdbb22f98bb9c68b0788a926",
+  "smppSourceSha": "678521e35c83793a59e045ef9bf59b4df842962e",
+  "contract": {
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "recordTypeCount": 16,
+    "eventCategoryCount": 11,
+    "deliveryClasses": ["audit", "operational"],
+    "allowlistsEqualSourceCapture": true,
+    "schemaCopiesByteIdentical": true,
+    "schemaSha256": "d8266956622b7c6eb1e970c0f8979fe58a7709af8619d94448f97d49f1f259f7"
+  },
+  "sourceVector": {
+    "recordId": "6eb4e972-be6e-5708-98ef-95dd5f263b96",
+    "expectedRecordHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee",
+    "platformRecomputedRecordHash": "57afebfcb2fcd7b2eb7a7ea2b79f7348d57b279ebf06cb87fe0a03621440dfee",
+    "hashParity": true,
+    "accepted": true
+  },
+  "failClosedChecks": {
+    "unsupportedSchemaVersionRejected": true,
+    "recordHashMismatchRejected": true,
+    "otlpBodyAttributeMismatchRejected": true,
+    "missingContractAttributeRejected": true,
+    "unsupportedAdapterTraceNameExcludedFromProviderOps": true
+  },
+  "sourceDefect": null,
+  "status": "SOURCE_CONTRACT_READY"
+}

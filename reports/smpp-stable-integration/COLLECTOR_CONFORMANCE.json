@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "collector": {
+    "image": "otel/opentelemetry-collector-contrib:0.157.0",
+    "digest": "sha256:f2f01157055a9b2aab9df7118e1f1c9abf345e99b23bc7a2bc791db374a7d0f6",
+    "developmentConfigValidated": true,
+    "qualificationMtlsConfigValidated": true,
+    "providerOpsSelection": [
+      "sdar.schema.name",
+      "sdar.schema.version",
+      "sdar.record.id",
+      "sdar.record.hash",
+      "body.schemaName"
+    ],
+    "nonProviderOpsExcluded": true,
+    "strictProcessorAck": true,
+    "prometheusReceiverConfigured": true
+  },
+  "realRuntimeMetrics": {
+    "target": "192.168.1.7:19100",
+    "path": "/metrics",
+    "up": 1,
+    "samplesScraped": 43,
+    "runtimeVersion": "2.0.0-rc.1"
+  },
+  "providerOpsQualification": {
+    "sourceDerivedVectorReachedProcessor": true,
+    "unselectedLogDurablyStored": false,
+    "realExternalRuntimeProviderOpsObserved": false,
+    "externalRuntimeConfigurationChanged": false
+  },
+  "status": "COLLECTOR_READY",
+  "liveStatus": "PARTIAL_REAL_METRICS_ONLY"
+}

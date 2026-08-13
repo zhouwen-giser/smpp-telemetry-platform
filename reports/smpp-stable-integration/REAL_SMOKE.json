@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-12T11:20:00.791Z",
+  "endpoint": "http://192.168.1.7:19100/metrics",
+  "credentialsRequired": false,
+  "reachable": true,
+  "format": "Prometheus text exposition",
+  "bytes": 3062,
+  "lines": 43,
+  "sha256": "7975524438059cabc49734c42dfcec4b6aad8163fdaccff00b8476d3f8573f18",
+  "runtimeVersion": "2.0.0-rc.1",
+  "observations": {
+    "telemetryAuditBacklog": 0,
+    "telemetryEventsEmittedAudit": 24689,
+    "telemetryExportAttemptsAudit": 24689,
+    "telemetryExportFailuresAudit": 24689,
+    "collectorScrapeUp": 1,
+    "collectorSamplesScraped": 43
+  },
+  "safety": {
+    "allowSideEffects": false,
+    "operationTriggeredByQualification": null,
+    "movementReconGimbalFireInvoked": false
+  },
+  "providerOps": {
+    "sourceDerivedCurrentCodeVectorEndToEnd": true,
+    "realRuntimeProviderOpsEndToEnd": false,
+    "landingRowsNotFromQualificationInjection": 0,
+    "interpretation": "The live metrics plane is qualified. The external Runtime did not deliver a real ProviderOps OTLP record to this isolated Collector, and the qualification did not modify external SMPP configuration."
+  },
+  "status": "LIVE_SMPP_PARTIAL_METRICS_ONLY"
+}

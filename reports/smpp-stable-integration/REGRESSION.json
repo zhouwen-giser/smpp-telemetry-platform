@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "telemetrySha": "5ff2a4e5b2fd8066fdbb22f98bb9c68b0788a926",
+  "commands": {
+    "pnpmBuild": "PASS",
+    "pnpmTest": {"status": "PASS", "tests": 28, "passed": 28, "failed": 0},
+    "pnpmCheck": {"status": "PASS", "tests": 28, "passed": 28, "failed": 0},
+    "pnpmTypecheck": {
+      "status": "FAIL_BASELINE_DEBT",
+      "exitCode": 2,
+      "strictOptionsPreserved": true,
+      "summary": "The baseline repository uses JavaScript-style TypeScript with undeclared class properties and implicit any across existing Processor, WAL, Query and test files. The Goal did not weaken strict compiler options."
+    },
+    "gitDiffCheck": "PASS",
+    "collectorExactImageConfigValidation": "PASS",
+    "schemaCopyParity": "PASS",
+    "migrationDeploymentTests": "PASS",
+    "queryApiTests": "PASS",
+    "realMetricsSmoke": "PASS",
+    "deploymentQualification": "PASS"
+  },
+  "status": "REGRESSION_PARTIAL_TYPECHECK_BASELINE_DEBT"
+}

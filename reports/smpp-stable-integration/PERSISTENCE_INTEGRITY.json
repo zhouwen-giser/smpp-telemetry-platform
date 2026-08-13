@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "qualificationProject": "smpp-telemetry-goal01-qualification",
+  "isolatedVolumes": true,
+  "wal": {
+    "fsyncBeforeSuccess": true,
+    "recoveredAfterProcessorRestart": true,
+    "clickhouseOutagePendingRecords": 1,
+    "clickhouseRecoveryProjectedRecords": 1
+  },
+  "idempotency": {
+    "sameRecordIdSameHashInputs": 2,
+    "landingRows": 1,
+    "normalizedRows": 1,
+    "coreRows": 1
+  },
+  "conflictIsolation": {
+    "sameRecordIdDifferentHashInputs": 1,
+    "conflictRows": 1,
+    "canonicalRowsCorrupted": false
+  },
+  "finalQualificationCounts": {
+    "landing": 2,
+    "normalized": 2,
+    "coreResourceState": 2,
+    "conflict": 1,
+    "rejectedSummary": 3
+  },
+  "migration": {
+    "explicitOneShotServiceExitCode": 0,
+    "pinnedClickHouseVersion": "25.3.14.14",
+    "dateTime64TtlCompatible": true,
+    "rfc3339JsonEachRowCompatible": true
+  },
+  "status": "STORAGE_READY"
+}

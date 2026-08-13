@@ -5,3 +5,4 @@ secrets/*.txt
 *.log
 *.tmp
 .DS_Store
+.codex/

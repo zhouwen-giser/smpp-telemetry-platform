@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "canonicalLineage": {
+    "topLevelTraceAndSpanPreserved": true,
+    "taskResourceExecutionProviderDimensionsQueryable": true,
+    "sourceDeploymentPartOfEntityUrn": true,
+    "unknownDeploymentFabricated": false
+  },
+  "relationProjection": {
+    "explicitSdarOriginRequired": true,
+    "originDeploymentRequired": true,
+    "twoByTwoManyToManyTestExpectedRelations": 4,
+    "twoByTwoManyToManyTestActualRelations": 4,
+    "uniqueRelationIds": 4
+  },
+  "liveObservation": {
+    "sourceVectorContainsSdarOrigin": false,
+    "realRuntimeCorrelatedTaskObserved": false,
+    "syntheticRelationClaimedAsLive": false
+  },
+  "status": "CORRELATION_LOGIC_READY_LIVE_SAMPLE_NOT_OBSERVED"
+}

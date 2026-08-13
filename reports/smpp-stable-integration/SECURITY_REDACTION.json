@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "observedAt": "2026-08-12T11:32:00.000Z",
+  "mtls": {
+    "runtimeToCollectorRequired": true,
+    "collectorToProcessorRequired": true,
+    "skipVerifyPresent": false,
+    "missingClientCertificateExitCode": 56,
+    "missingClientCertificateAlert": "certificate required",
+    "untrustedClientIdentityExitCode": 56,
+    "untrustedClientIdentityAlert": "unknown ca"
+  },
+  "identity": {
+    "collectorId": "smpp-gateway-ugv-1",
+    "trustDomain": "sdar-ugv-runtime-mtls",
+    "deploymentId": "production-ugv-direct",
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "instanceId": "production-ugv-direct-1",
+    "wildcards": false,
+    "forgedCollectorRejected": true
+  },
+  "network": {
+    "qualificationPublishedAddress": "127.0.0.1",
+    "wildcardBindRejectedByPreflight": true,
+    "clickhousePublished": false,
+    "grafanaPublished": false,
+    "processorPublished": false
+  },
+  "rejectionRedaction": {
+    "safeSummaryRows": 3,
+    "rawSensitiveValueRows": 0,
+    "rawRejectedEnvelopePersisted": false
+  },
+  "secretValuesPresentInReports": false,
+  "status": "SECURITY_READY"
+}
