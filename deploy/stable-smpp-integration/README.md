@@ -6,8 +6,9 @@ production transport mode: Runtime→Collector and Collector→Processor both re
 
 Copy `.env.example` to `.env`, set exact identities and an absolute `QUALIFICATION_SECRET_DIR`, then
 run `./preflight.sh`, `./up.sh`, `./smoke.sh`, or the restart-inclusive `./qualify.sh`.
-`TELEMETRY_BIND_ADDRESS` must be the exact loopback or private interface reachable by the Runtime;
-the preflight rejects wildcard host binding so OTLP is not exposed on every host interface.
+`TELEMETRY_BIND_ADDRESS` remains an exact loopback or private interface for management/query ports.
+Per deployment requirement, `OTLP_HTTP_BIND_ADDRESS=0.0.0.0` publishes only OTLP/HTTP on every
+IPv4 interface at port `4318`. Qualification mode protects that listener with Runtime client mTLS.
 
 Use a qualification-specific `COMPOSE_PROJECT_NAME`. Compose will then create isolated ClickHouse,
 WAL, and Grafana volumes without touching operator production volumes. `down.sh` deliberately keeps

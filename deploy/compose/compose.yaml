@@ -66,7 +66,7 @@ services:
       telemetry-processor: { condition: service_healthy }
     volumes:
       - ./telemetry-collector/config/gateway.yaml:/etc/otelcol-contrib/config.yaml:ro
-    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_GRPC_PORT:-4317}:4317", "${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_HTTP_PORT:-4318}:4318", "127.0.0.1:13133:13133", "127.0.0.1:8888:8888", "127.0.0.1:9464:9464"]
+    ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_BIND_ADDRESS:-0.0.0.0}:${OTLP_HTTP_PORT:-4318}:4318", "127.0.0.1:13133:13133", "127.0.0.1:8888:8888", "127.0.0.1:9464:9464"]
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol-contrib/config.yaml"]
       interval: 10s

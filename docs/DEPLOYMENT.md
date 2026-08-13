@@ -11,7 +11,7 @@ docker compose up --build -d
 npm run send:sample
 ```
 
-外部仅暴露 Collector `4317/4318`、Query API `8088`、ClickHouse 开发端口和可选 Grafana。Processor 的 `8443` 只在 Compose 网络暴露。
+OTLP/HTTP 按部署要求绑定 `0.0.0.0:4318`。OTLP/gRPC、Query API、ClickHouse 和 Grafana 使用 `TELEMETRY_BIND_ADDRESS`，Collector 管理/指标端口仅绑定回环地址；Processor 的 `8443` 只在 Compose 网络暴露。跨主机使用时应启用 qualification mTLS 配置并配置主机防火墙。
 
 ## 生产必须调整
 

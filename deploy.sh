@@ -4,6 +4,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$ROOT"
 command -v docker >/dev/null 2>&1 || { echo "错误：未安装 Docker。" >&2; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "错误：未安装 Docker Compose v2。" >&2; exit 1; }
+command -v openssl >/dev/null 2>&1 || { echo "错误：未安装 OpenSSL。" >&2; exit 1; }
 [ -f .env ] || cp .env.example .env
 mkdir -p secrets config/generated
 [ -s secrets/clickhouse_password.txt ] || { umask 077; openssl rand -hex 24 > secrets/clickhouse_password.txt; }
@@ -16,8 +17,9 @@ fi
 docker build --target builder -f telemetry-processor/Dockerfile -t smpp-telemetry-builder:0.3.0 .
 docker run --rm -v "$ROOT:/work" -w /app smpp-telemetry-builder:0.3.0 node dist/deploy/bin/generate-config.js /work
 docker compose pull
-docker compose up -d --build --remove-orphans
+docker compose up -d --build --remove-orphans --wait --wait-timeout 180
 printf '\n部署完成。\n'
+printf '监听地址：  0.0.0.0:%s -> Collector OTLP/HTTP\n' "$(grep '^OTLP_HTTP_PORT=' .env|cut -d= -f2-)"
 printf 'OTLP/HTTP: http://%s:%s\n' "$(grep '^TELEMETRY_PUBLIC_HOST=' .env|cut -d= -f2-)" "$(grep '^OTLP_HTTP_PORT=' .env|cut -d= -f2-)"
 printf 'Query API:  http://%s:%s\n' "$(grep '^TELEMETRY_PUBLIC_HOST=' .env|cut -d= -f2-)" "$(grep '^QUERY_API_PORT=' .env|cut -d= -f2-)"
 printf 'Grafana:    http://%s:%s\n' "$(grep '^TELEMETRY_PUBLIC_HOST=' .env|cut -d= -f2-)" "$(grep '^GRAFANA_PORT=' .env|cut -d= -f2-)"

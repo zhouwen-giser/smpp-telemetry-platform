@@ -9,6 +9,7 @@ set -a
 set +a
 [ "${ALLOW_SMPP_TELEMETRY_SIDE_EFFECT_TESTS:-false}" = false ] || { echo 'side-effect qualification must remain false' >&2; exit 1; }
 case "${TELEMETRY_BIND_ADDRESS:-}" in ''|0.0.0.0|::|'[::]') echo 'TELEMETRY_BIND_ADDRESS must be an exact loopback or private interface address' >&2; exit 1;; esac
+[ "${OTLP_HTTP_BIND_ADDRESS:-0.0.0.0}" = "0.0.0.0" ] || { echo 'OTLP_HTTP_BIND_ADDRESS must remain 0.0.0.0 for this deployment profile' >&2; exit 1; }
 for value in "${COLLECTOR_ID:-}" "${TRUST_DOMAIN:-}" "${SMPP_DEPLOYMENT_ID:-}" "${SMPP_PROVIDER_ID:-}" "${SMPP_RUNTIME_INSTANCE_ID:-}"; do
   [ -n "$value" ] && [ "$value" != '*' ] || { echo 'trusted identities must be exact and non-empty' >&2; exit 1; }
 done
