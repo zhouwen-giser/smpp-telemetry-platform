@@ -1,7 +1,18 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:25.3
+    image: smpp-telemetry-clickhouse:25.3.14.14-arm64v8-source
+    pull_policy: never
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: clickhouse-arm64/Dockerfile
+      args:
+        CLICKHOUSE_BUILD_JOBS: ${CLICKHOUSE_BUILD_JOBS:-2}
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password

@@ -1,7 +1,18 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:25.3
+    image: smpp-telemetry-clickhouse:25.3.14.14-arm64v8-source
+    pull_policy: never
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: clickhouse-arm64/Dockerfile
+      args:
+        CLICKHOUSE_BUILD_JOBS: ${CLICKHOUSE_BUILD_JOBS:-2}
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
@@ -26,7 +37,7 @@ services:
         VCS_REF: ${TELEMETRY_IMAGE_REVISION:-development}
     restart: unless-stopped
     depends_on:
-      clickhouse: { condition: service_healthy }
+      telemetry-migrate: { condition: service_completed_successfully }
     environment:
       PROCESSOR_HOST: 0.0.0.0
       PROCESSOR_PORT: 8443
@@ -48,6 +59,22 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
+
+  telemetry-migrate:
+    build:
+      context: .
+      dockerfile: telemetry-processor/Dockerfile
+      args:
+        VCS_REF: ${TELEMETRY_IMAGE_REVISION:-development}
+    restart: "no"
+    depends_on:
+      clickhouse: { condition: service_healthy }
+    command: ["node", "dist/telemetry-schema/tools/migrate.js"]
+    environment:
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
+    secrets: [clickhouse_password]
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.157.0
@@ -81,7 +108,7 @@ services:
         VCS_REF: ${TELEMETRY_IMAGE_REVISION:-development}
     restart: unless-stopped
     depends_on:
-      clickhouse: { condition: service_healthy }
+      telemetry-migrate: { condition: service_completed_successfully }
     environment:
       QUERY_API_HOST: 0.0.0.0
       QUERY_API_PORT: 8088
@@ -94,7 +121,8 @@ services:
   grafana:
     image: grafana/grafana:12.1.0
     restart: unless-stopped
-    depends_on: [clickhouse]
+    depends_on:
+      telemetry-migrate: { condition: service_completed_successfully }
     environment:
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}

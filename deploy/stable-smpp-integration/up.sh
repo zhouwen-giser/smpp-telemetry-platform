@@ -8,4 +8,6 @@ set -a
 . "$ENV_FILE"
 set +a
 node deploy/bin/generate-config.ts "$ROOT" "$ENV_FILE"
+docker compose --env-file "$ENV_FILE" -f compose.yaml -f deploy/stable-smpp-integration/compose.override.yaml build clickhouse
+docker compose --env-file "$ENV_FILE" -f compose.yaml -f deploy/stable-smpp-integration/compose.override.yaml run --rm --no-deps --entrypoint clickhouse clickhouse --version
 docker compose --env-file "$ENV_FILE" -f compose.yaml -f deploy/stable-smpp-integration/compose.override.yaml up -d --build --remove-orphans --wait --wait-timeout 180

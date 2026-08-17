@@ -6,3 +6,14 @@ secrets/*.txt
 *.tmp
 .DS_Store
 .codex/
+
+# ClickHouse source archives and local compilation outputs are generated on the
+# deployment host. Keep them on disk, but never put them in Git history.
+clickhouse-arm64/vendor/
+clickhouse-arm64/build/
+clickhouse-arm64/out/
+clickhouse-arm64/.cache/
+
+# One-click bundles, repair archives and checksum sidecars are generated
+# delivery artifacts. Publish them outside Git instead of committing them.
+reports/smpp-stable-integration/delivery/

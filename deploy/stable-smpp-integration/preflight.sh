@@ -7,6 +7,7 @@ ENV_FILE=${1:-deploy/stable-smpp-integration/.env}
 set -a
 . "$ENV_FILE"
 set +a
+clickhouse-arm64/preflight.sh
 [ "${ALLOW_SMPP_TELEMETRY_SIDE_EFFECT_TESTS:-false}" = false ] || { echo 'side-effect qualification must remain false' >&2; exit 1; }
 case "${TELEMETRY_BIND_ADDRESS:-}" in ''|0.0.0.0|::|'[::]') echo 'TELEMETRY_BIND_ADDRESS must be an exact loopback or private interface address' >&2; exit 1;; esac
 [ "${OTLP_HTTP_BIND_ADDRESS:-0.0.0.0}" = "0.0.0.0" ] || { echo 'OTLP_HTTP_BIND_ADDRESS must remain 0.0.0.0 for this deployment profile' >&2; exit 1; }

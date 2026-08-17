@@ -1,6 +1,6 @@
 # SMPP Telemetry Platform v0.3.0（TypeScript 源码版）
 
-这是面向 SMPP ProviderOps 遥测的独立四层平台。项目提供完整 TypeScript 源码，Docker 镜像在构建阶段编译源码，`dist/` 不作为源码交付内容。
+这是面向 SMPP ProviderOps 遥测的独立四层平台。项目提供完整 TypeScript 源码，Docker 镜像在构建阶段编译源码，`dist/` 不作为源码交付内容。本交付变体面向原生 Linux ARM64：ClickHouse 也从固定官方源码提交在部署机本地编译，不依赖预编译 ClickHouse Server 镜像。
 
 ## 四层架构
 
@@ -16,6 +16,8 @@
 
 ## 一键部署
 
+部署机必须是原生 ARM64，CPU 暴露 `crc32` 特征。首次构建 ClickHouse 推荐 32 GiB 内存和 80 GiB 可用磁盘；资源较小时请准备 swap，并把 `CLICKHOUSE_BUILD_JOBS` 设为 `1`。
+
 ```bash
 cp .env.example .env
 ```
@@ -25,6 +27,7 @@ cp .env.example .env
 ```env
 TELEMETRY_PUBLIC_HOST=192.168.1.20
 SMPP_SERVICES=smpp-a|http://192.168.1.101:3000,smpp-b|http://192.168.1.102:3000
+CLICKHOUSE_BUILD_JOBS=2
 ```
 
 执行：
@@ -34,7 +37,9 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
-Docker Compose 会启动 OpenTelemetry Collector、Telemetry Processor、ClickHouse、Query API 和 Grafana。SMPP 使用主动推送方式，因此还需要按自动生成的 `config/generated/SMPP_RUNTIME_OTEL_CONFIG.md` 配置各 SMPP Runtime 的 OTLP Endpoint。
+部署脚本先检查 ARM64/CRC、从 ClickHouse `v25.3.14.14-lts` 的固定提交构建 `armv8+crc` 兼容镜像，并原生执行版本门禁；随后启动 OpenTelemetry Collector、Telemetry Processor、ClickHouse、Query API 和 Grafana。SMPP 使用主动推送方式，因此还需要按自动生成的 `config/generated/SMPP_RUNTIME_OTEL_CONFIG.md` 配置各 SMPP Runtime 的 OTLP Endpoint。
+
+ClickHouse 完整源码树（含递归 submodule）已经压缩在部署包内，目标服务器构建时不访问 GitHub，只需联网获取 Debian 编译依赖和其余容器基础镜像。源码构建细节见 `clickhouse-arm64/README.md`。重复运行 `deploy.sh` 会复用 Docker 构建缓存并保留数据卷，不需要预先删除旧容器；不要执行 `docker compose down -v`，除非明确要删除数据。
 
 ## TypeScript 开发
 
@@ -59,6 +64,5 @@ npm test
 
 详细中文说明见：
 
-- `docs/中文使用说明.md`
-- `docs/TypeScript开发说明.md`
+- `docs/SMPP_遥测平台中文使用说明.md`
 - `docs/IMPLEMENTATION_PLAN_V0.3.0.md`
