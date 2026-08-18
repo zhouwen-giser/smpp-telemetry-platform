@@ -15,15 +15,16 @@ export class TargetWorker {
     this.target=target;this.wal=wal;this.metrics=metrics;this.client=client;
     if(target.targetType==='sdar_shared_warehouse'&&Object.keys(target.tableMap??{}).length)throw new Error('SMPP_TARGET_TABLE_MAP_FORBIDDEN');
     this.normalizer=normalizer;this.projection=projection??(target.targetType==='sdar_shared_warehouse'?new SdarSharedWarehouseProjectionV1():new CoreProjectionV1());this.schemaPreflight=schemaPreflight;this.batchSize=batchSize;
-    this.running=false;this.lastError=null;this.checkpointId=`target:${target.targetId}`;
+    this.running=false;this.initialized=false;this.lastError=null;this.checkpointId=`target:${target.targetId}`;
   }
 
-  async initialize(){await this.client.initialize();if(this.target.targetType==='sdar_shared_warehouse')await this.schemaPreflight.assert(this.client);}
+  async initialize(){await this.client.initialize();if(this.target.targetType==='sdar_shared_warehouse')await this.schemaPreflight.assert(this.client);this.initialized=true;this.lastError=null;}
 
   async flush(){
     if(this.running||!this.target.enabled)return;
     this.running=true;
     try{
+      if(!this.initialized)await this.initialize();
       const entries=this.wal.pending(this.checkpointId,this.batchSize);
       if(!entries.length){this.lastError=null;return;}
       const tables=new Map();
@@ -87,7 +88,7 @@ export class TargetManager {
     this.targets=targets.filter(target=>target.enabled).map(target=>new TargetWorker({target,wal,metrics,batchSize,client:clientFactory?clientFactory(target):new ClickHouseClient(target.connection)}));
     this.timer=null;
   }
-  async initialize(){for(const target of this.targets)await target.initialize();}
+  async initialize(){for(const target of this.targets){try{await target.initialize();}catch(error){target.lastError=error;target.metrics.inc('projection_target_failures_total',{target:target.target.targetId});if(target.target.required)throw error;}}}
   start(intervalMs=1000){this.timer=setInterval(()=>void this.flush(),intervalMs);this.timer.unref();void this.flush();}
   async flush(){await Promise.all(this.targets.map(target=>target.flush()));}
   statuses(){return this.targets.map(target=>target.status());}
