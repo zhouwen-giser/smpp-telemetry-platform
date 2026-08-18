@@ -99,6 +99,7 @@ export class SmppProviderOpsNormalizerV1 {
       projectId: mapping.projectId,
       environment: mapping.environment,
       sourceInstance: {
+        smppSourceId: requiredIdentity(mapping.smppSourceId, 'SMPP_SOURCE_ID'),
         deploymentId,
         runtimeInstanceId: envelope.instanceId,
         providerId: envelope.providerId,
