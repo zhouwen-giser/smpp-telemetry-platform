@@ -1,8 +1,14 @@
 import { readFile } from 'node:fs/promises';
 async function secret(file,fallback=''){if(!file)return fallback;return(await readFile(file,'utf8')).trim();}
 export class ClickHouseClient{
-  constructor({url,user='default',password='',passwordFile=''}){this.url=url.replace(/\/$/,'');this.user=user;this.password=password;this.passwordFile=passwordFile;}
-  async initialize(){this.password=await secret(this.passwordFile,this.password);}
+  constructor({url,user='default',userEnv='',password='',passwordFile='',passwordEnv=''}){this.url=url.replace(/\/$/,'');this.user=user;this.userEnv=userEnv;this.inlinePassword=password;this.password=password;this.passwordFile=passwordFile;this.passwordEnv=passwordEnv;}
+  async initialize(){
+    if(this.userEnv){if(!/^[A-Z][A-Z0-9_]{0,127}$/.test(this.userEnv))throw new Error('CLICKHOUSE_USER_ENV_INVALID');const user=process.env[this.userEnv];if(!user)throw new Error('CLICKHOUSE_USER_ENV_MISSING');this.user=user;}
+    const sources=[this.inlinePassword!==''?'inline':'',this.passwordFile!==''?'file':'',this.passwordEnv!==''?'env':''].filter(Boolean);
+    if(sources.length>1)throw new Error('CLICKHOUSE_CREDENTIAL_AMBIGUOUS');
+    if(this.passwordEnv){if(!/^[A-Z][A-Z0-9_]{0,127}$/.test(this.passwordEnv))throw new Error('CLICKHOUSE_PASSWORD_ENV_INVALID');const value=process.env[this.passwordEnv];if(!value)throw new Error('CLICKHOUSE_PASSWORD_ENV_MISSING');this.password=value;return;}
+    this.password=await secret(this.passwordFile,this.inlinePassword);
+  }
   #headers(contentType='text/plain'){const h={'content-type':contentType};if(this.user)h.authorization=`Basic ${Buffer.from(`${this.user}:${this.password}`).toString('base64')}`;return h;}
   async query(sql,body=''){const response=await fetch(`${this.url}/?query=${encodeURIComponent(sql)}`,{method:'POST',headers:this.#headers(body?'application/x-ndjson':'text/plain'),body});if(!response.ok)throw new Error(`CLICKHOUSE_${response.status}:${(await response.text()).slice(0,500)}`);return response.text();}
   async ping(){await this.query('SELECT 1');return true;}
