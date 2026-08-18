@@ -6,7 +6,7 @@ secrets/*.txt
 *.tmp
 .DS_Store
 .codex/
-
+dist/
 # ClickHouse source archives and local compilation outputs are generated on the
 # deployment host. Keep them on disk, but never put them in Git history.
 clickhouse-arm64/vendor/
