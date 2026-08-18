@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { ClickHouseClient, landingRow, canonicalRow } from './clickhouse.js';
 import { SmppProviderOpsNormalizerV1 } from '../normalization/smpp-provider-ops-v1.js';
 import { CoreProjectionV1 } from '../projection/core-projection.js';
+import {SdarSharedWarehouseProjectionV1,SdarWarehouseSchemaPreflight} from '../projection/sdar-shared-warehouse-projection.js';
 
 export async function loadProjectionTargets(file) {
   const data=JSON.parse(await readFile(file,'utf8'));
@@ -10,13 +11,14 @@ export async function loadProjectionTargets(file) {
 }
 
 export class TargetWorker {
-  constructor({target,wal,metrics,client,normalizer=new SmppProviderOpsNormalizerV1(),projection=new CoreProjectionV1(),batchSize=200}) {
+  constructor({target,wal,metrics,client,normalizer=new SmppProviderOpsNormalizerV1(),projection,batchSize=200,schemaPreflight=new SdarWarehouseSchemaPreflight()}) {
     this.target=target;this.wal=wal;this.metrics=metrics;this.client=client;
-    this.normalizer=normalizer;this.projection=projection;this.batchSize=batchSize;
+    if(target.targetType==='sdar_shared_warehouse'&&Object.keys(target.tableMap??{}).length)throw new Error('SMPP_TARGET_TABLE_MAP_FORBIDDEN');
+    this.normalizer=normalizer;this.projection=projection??(target.targetType==='sdar_shared_warehouse'?new SdarSharedWarehouseProjectionV1():new CoreProjectionV1());this.schemaPreflight=schemaPreflight;this.batchSize=batchSize;
     this.running=false;this.lastError=null;this.checkpointId=`target:${target.targetId}`;
   }
 
-  async initialize(){await this.client.initialize();}
+  async initialize(){await this.client.initialize();if(this.target.targetType==='sdar_shared_warehouse')await this.schemaPreflight.assert(this.client);}
 
   async flush(){
     if(this.running||!this.target.enabled)return;
@@ -67,7 +69,7 @@ export class TargetWorker {
           }
         }
       }
-      for(const [table,rows] of tables)await this.client.insert(this.target.tableMap?.[table]??table,rows);
+      for(const [table,rows] of tables){const targetTable=this.target.targetType==='sdar_shared_warehouse'?table:(this.target.tableMap?.[table]??table);await this.client.insert(targetTable,rows);}
       await this.wal.commit(this.checkpointId,entries.at(-1));
       this.lastError=null;
       this.metrics.inc('projection_target_batches_total',{target:this.target.targetId});
@@ -77,7 +79,7 @@ export class TargetWorker {
     }finally{this.running=false;}
   }
 
-  status(){return {targetId:this.target.targetId,targetType:this.target.targetType,enabled:this.target.enabled,running:this.running,lastError:this.lastError?.message??null,checkpoint:this.wal.checkpoint(this.checkpointId),pending:this.wal.pending(this.checkpointId,Number.MAX_SAFE_INTEGER).length};}
+  status(){return {targetId:this.target.targetId,targetType:this.target.targetType,projectionId:this.projection.projectionId,projectionVersion:this.projection.projectionVersion,enabled:this.target.enabled,running:this.running,lastError:this.lastError?.message??null,checkpoint:this.wal.checkpoint(this.checkpointId),pending:this.wal.pending(this.checkpointId,Number.MAX_SAFE_INTEGER).length};}
 }
 
 export class TargetManager {
