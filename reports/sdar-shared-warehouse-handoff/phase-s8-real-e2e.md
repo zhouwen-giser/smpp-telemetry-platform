@@ -1,15 +1,15 @@
 # SMPP Increment Phase Report
 
 - Phase: S8 — Cross-repo real E2E and restart/conflict tests
-- SDAR Telemetry SHA: pending S8 consumer commit (parent `a6db5f6`)
-- SMPP Telemetry SHA: pending phase commit (parent `5b1b21f3`)
+- SDAR Telemetry SHA: `8ab9e7c`
+- SMPP Telemetry SHA: `9142610d244b248508844abcc0cd20f7eb12e810`
 - ClickHouse release/hash: live `24.10.2.1 / 1.5.1-rc.2 / 00..26`; schema `sha256:78da6e9e511b7714b15a4f6ef5f2ba54578880493e2aa264f433ff1595a1d7b8`; descriptor `sha256:1610cf2a4cc9450193dd70abf7a516f0ea4792099ed0f34dcf2fad44d094b335`
 - Commands run: real Collector send; Processor/WAL checkpoint inspection; standalone/SDAR parity verifier; outage/recovery/restart; Telemetry consumer E2E; `npm run check`
 - Tests passed/failed/skipped: real E2E PASS; companion full regression 44/44 PASS; no skipped E2E assertion
 - Live vs fixture boundary: the 16 valid payload fixtures supplied record payloads, but the asserted path used a real OTel Collector, real Processor fsync WAL, real isolated standalone ClickHouse, live RC2 rows, restart/outage, and the actual Telemetry/Benchmark consumer. The result is not a fixture-only claim.
 - Gate changes: G-SMPP-11–18 PASS live; G-SMPP-20–23 PASS live consumer; G-SMPP-26 PASS
 - Blockers/resume point: none for S8. The companion change still requires review/merge before production activation.
-- Commit/push/PR updates: pending companion and Telemetry Draft PR updates
+- Commit/push/PR updates: both phase commits pushed; PR body update recorded in S9
 
 ## Real run
 

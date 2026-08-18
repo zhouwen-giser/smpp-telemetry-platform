@@ -5,7 +5,7 @@
   "source": {
     "repository": "zhouwen-giser/smpp-telemetry-platform",
     "mainSha": "8f500c5743818c776a5f01cca65aa188c3869430",
-    "companionParentSha": "5b1b21f3f9021ff698f67255a5c8def92a0d36fc",
+    "companionSha": "9142610d244b248508844abcc0cd20f7eb12e810",
     "providerOpsSchemaBlob": "dc4c8608249acb29c677b2ea9a4f11e47e7f66b1",
     "sourceMappingVersion": 4,
     "smppSourceId": "smpp.codex.s8.20260818t023207z"
