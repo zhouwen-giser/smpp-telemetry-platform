@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "serviceInventory": [
     {
       "name": "sdar-ugv-runtime",
@@ -13,14 +13,16 @@
       "deploymentId": "production-ugv-direct",
       "providerId": "isr.vehicle.ugv.ugv1",
       "instanceId": "production-ugv-direct-1",
+      "smppSourceId": "smpp.production.ugv-direct",
       "tenantId": "tenant-local",
       "projectId": "smpp-local",
       "environment": "qualification",
       "sourceProduct": "sdar-mcp-provider-platform",
-      "mappingVersion": 3,
+      "mappingVersion": 4,
       "policyVersion": 1,
       "projectionRouteIds": [
-        "standalone-smpp"
+        "standalone-smpp",
+        "sdar-warehouse-shadow"
       ],
       "status": "active",
       "validFrom": "2026-01-01T00:00:00Z",

@@ -1,0 +1,39 @@
+{
+  "contract": "smpp.providerops-payload-fixtures/v1.1",
+  "valid": [
+    {"recordType":"provider.task.lifecycle","payload":{"currentState":"completed","providerSubstate":"idle","providerRevision":"7","observedAt":"2026-08-18T01:02:03.004Z","terminalStatus":"completed"}},
+    {"recordType":"provider.command.lifecycle","payload":{"externalCommandId":"cmd-1","currentState":"acknowledged","providerRevision":"8"}},
+    {"recordType":"provider.scheduler.decision","payload":{"reasonCode":"capacity","providerRevision":"9"}},
+    {"recordType":"provider.recovery.lifecycle","payload":{"currentState":"recovering","reasonCode":"transport_reset"}},
+    {"recordType":"provider.ttl.lifecycle","payload":{"currentState":"expired","terminalStatus":"expired"}},
+    {"recordType":"provider.resource.state","payload":{"state":"available","observedAt":"2026-08-18T01:02:03.004Z"}},
+    {"recordType":"provider.resource.metric","payload":{"providerRevision":"10","observedAt":"2026-08-18T01:02:03.004Z"}},
+    {"recordType":"provider.resource.health","payload":{"status":"healthy","observedAt":"2026-08-18T01:02:03.004Z"}},
+    {"recordType":"provider.execution.progress","payload":{"progressPercent":50,"providerRevision":"11"}},
+    {"recordType":"provider.business_event.source.lifecycle","payload":{"currentState":"accepted"}},
+    {"recordType":"provider.business_event.ingest.lifecycle","payload":{"currentState":"ingested"}},
+    {"recordType":"provider.business_event.publication.lifecycle","payload":{"currentState":"published"}},
+    {"recordType":"provider.business_event.stream.lifecycle","payload":{"currentState":"streamed"}},
+    {"recordType":"provider.business_event.continuity","payload":{"currentState":"continuous"}},
+    {"recordType":"provider.business_event.delivery.lifecycle","payload":{"currentState":"delivered","terminalStatus":"delivered"}},
+    {"recordType":"provider.business_event.relation.lifecycle","payload":{"currentState":"related"}}
+  ],
+  "invalid": [
+    {"recordType":"provider.task.lifecycle","payload":{"observedAt":"not-utc"}},
+    {"recordType":"provider.command.lifecycle","payload":{"externalCommandId":7}},
+    {"recordType":"provider.scheduler.decision","payload":{"reasonCode":false}},
+    {"recordType":"provider.recovery.lifecycle","payload":{"currentState":[]}},
+    {"recordType":"provider.ttl.lifecycle","payload":{"terminalStatus":null}},
+    {"recordType":"provider.resource.state","payload":{"state":3}},
+    {"recordType":"provider.resource.metric","payload":{"providerRevision":{}}},
+    {"recordType":"provider.resource.health","payload":{"status":true}},
+    {"recordType":"provider.execution.progress","payload":{"progressPercent":101}},
+    {"recordType":"provider.business_event.source.lifecycle","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.ingest.lifecycle","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.publication.lifecycle","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.stream.lifecycle","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.continuity","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.delivery.lifecycle","payload":{"currentState":0}},
+    {"recordType":"provider.business_event.relation.lifecycle","payload":{"currentState":0}}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sdar.io/schemas/smpp-source-mapping-v4.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "mappings"],
+  "properties": {
+    "version": {"const": 4},
+    "mappings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["collectorId", "trustDomain", "deploymentId", "providerId", "instanceId", "smppSourceId", "tenantId", "projectId", "environment", "mappingVersion", "policyVersion", "projectionRouteIds", "status", "validFrom"],
+        "properties": {
+          "smppSourceId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"},
+          "mappingVersion": {"const": 4}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "runId": "codex-smpp-s8-20260818T023207Z",
+  "status": "passed",
+  "source": {
+    "repository": "zhouwen-giser/smpp-telemetry-platform",
+    "mainSha": "8f500c5743818c776a5f01cca65aa188c3869430",
+    "companionSha": "9142610d244b248508844abcc0cd20f7eb12e810",
+    "providerOpsSchemaBlob": "dc4c8608249acb29c677b2ea9a4f11e47e7f66b1",
+    "sourceMappingVersion": 4,
+    "smppSourceId": "smpp.codex.s8.20260818t023207z"
+  },
+  "transport": {
+    "collector": "otel/opentelemetry-collector-contrib:0.157.0",
+    "processor": "companion source build",
+    "walAcknowledgement": "fsync before HTTP success",
+    "initialHttpStatus": 200,
+    "duplicateHttpStatus": 200,
+    "conflictHttpStatus": 500,
+    "conflictMeaning": "Collector propagated a fail-closed downstream Processor conflict",
+    "walEntries": 18,
+    "walAcceptedEntries": 17,
+    "walConflictEntries": 1
+  },
+  "targets": {
+    "standalone": {
+      "kind": "isolated real ClickHouse",
+      "serverVersion": "25.3.10.19",
+      "existingRepositoryMigrationsApplied": true,
+      "ddlFilesModified": false,
+      "temporaryContainerRemoved": true
+    },
+    "sdar": {
+      "kind": "live external ClickHouse",
+      "serverVersion": "24.10.2.1",
+      "releaseVersion": "1.5.1-rc.2",
+      "migrationRange": "00..26",
+      "schemaContractHash": "sha256:78da6e9e511b7714b15a4f6ef5f2ba54578880493e2aa264f433ff1595a1d7b8",
+      "releaseDescriptorHash": "sha256:1610cf2a4cc9450193dd70abf7a516f0ea4792099ed0f34dcf2fad44d094b335",
+      "ddlModified": false
+    }
+  },
+  "failureIsolation": {
+    "outageTarget": "192.168.1.7:1",
+    "outageFailure": "undici bad port before network delivery",
+    "standaloneCheckpointDuringOutage": {"segment": 1, "offsetEnd": 31633, "pending": 0},
+    "sdarCheckpointDuringOutage": {"segment": 1, "offsetEnd": 30312, "pending": 1},
+    "standaloneCheckpointAfterRecovery": {"segment": 1, "offsetEnd": 31633, "pending": 0},
+    "sdarCheckpointAfterRecovery": {"segment": 1, "offsetEnd": 31633, "pending": 0},
+    "processRestartCount": 3
+  },
+  "parity": {
+    "recordTypeCount": 16,
+    "standaloneFactCount": 17,
+    "sdarFactCount": 17,
+    "standaloneRelationCount": 48,
+    "sdarRelationCount": 48,
+    "countParity": true,
+    "factHashParity": true,
+    "relationIdentityParity": true,
+    "watermarkLagMs": 0,
+    "maxWatermarkLagMs": 5000,
+    "relationCoverage": 1,
+    "minimumRelationCoverage": 1
+  },
+  "consumer": {
+    "telemetryActualRowsConsumed": true,
+    "benchmarkHandoffContract": "sdar.telemetry-smpp-providerops-handoff/v1",
+    "readiness": "ready",
+    "reconciliationIssueCount": 0,
+    "goalSuccessProven": false,
+    "physicalSuccessProven": false,
+    "benchmarkScoreCalculated": false
+  },
+  "checks": {
+    "realOtlpCollector": true,
+    "realDurableWal": true,
+    "realStandaloneClickHouse": true,
+    "realSdarClickHouse": true,
+    "sameIdentitySameHashIdempotent": true,
+    "sameIdentityDifferentHashRejected": true,
+    "outOfOrderSequenceAccepted": true,
+    "restartReplay": true,
+    "optionalTargetFailureIsolation": true,
+    "allParityChecks": true,
+    "actualBenchmarkConsumer": true,
+    "queryPollingUsedAsProjection": false,
+    "providerTerminalPromotedToGoalOrPhysicalSuccess": false,
+    "clickHouseDdlFilesModified": false
+  }
+}
