@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:30:03.678Z",
+  "status": "PASS",
+  "mappingVersion": 4,
+  "sourceMapping": {
+    "collectorId": "smpp-ugv-joint-collector-1",
+    "trustDomain": "local-development",
+    "deploymentId": "ugv-test-deployment",
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "runtimeInstanceId": "ugv-runtime-test-1",
+    "smppSourceId": "smpp.ugv-test-deployment.ugv-runtime-test-1",
+    "tenantId": "tenant-local",
+    "projectId": "ugv-joint-integration",
+    "environment": "development",
+    "sourceProduct": "sdar-mcp-provider-platform",
+    "status": "active",
+    "validFrom": "2026-01-01T00:00:00Z",
+    "validTo": null
+  },
+  "runtimeConfiguration": {
+    "otelEnabled": true,
+    "otelEndpoint": "http://host.docker.internal:4318",
+    "otelTlsMode": "disabled",
+    "otelTimeoutMs": 10000,
+    "runtimeInstanceId": "ugv-runtime-test-1",
+    "otelServiceInstanceId": "ugv-runtime-test-1",
+    "runtimeDeploymentId": "ugv-test-deployment"
+  },
+  "collectorConfiguration": {
+    "collectorId": "smpp-ugv-joint-collector-1",
+    "trustDomain": "local-development",
+    "deploymentId": "ugv-test-deployment",
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "runtimeInstanceId": "ugv-runtime-test-1",
+    "runtimeMetricsTarget": "host.docker.internal:19100",
+    "runtimeMetricsPath": "/metrics",
+    "runtimeMetricsScrapeInterval": "15s"
+  },
+  "identityParity": {
+    "runtimeInstanceId": true,
+    "deploymentId": true,
+    "providerId": true,
+    "collectorId": true
+  },
+  "boundary": {
+    "telemetryConsumesOnlyRuntimeOtlpAndMetrics": true,
+    "directMqttConnection": false,
+    "directDeviceMcpConnection": false,
+    "legacy1921681ExampleUsedAsEvidence": false,
+    "simulatorDeviceMcpUsedAsRuntimeMetricsTarget": false
+  },
+  "source": "config/generated/source-mappings.json plus a whitelist-only live container environment inspection"
+}

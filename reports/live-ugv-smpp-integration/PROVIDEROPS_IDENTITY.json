@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:32:25.723Z",
+  "status": "PARTIAL",
+  "reasonCode": "CANONICAL_IDENTITY_PARITY_PASS_ON_HISTORICAL_BACKLOG_CURRENT_RUN_PENDING",
+  "sourceIdentity": {
+    "tenantId": "tenant-local",
+    "projectId": "ugv-joint-integration",
+    "environment": "development",
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "runtimeInstanceId": "ugv-runtime-test-1",
+    "deploymentId": "ugv-test-deployment",
+    "collectorId": "smpp-ugv-joint-collector-1",
+    "rowsWithExactIdentityAtCapture": 42469
+  },
+  "canonicalSample": {
+    "recordId": "7cfdc860-c498-59ea-b639-17433532f3b7",
+    "landingRecordHash": "38265e4e5db641f756fb8dd039af1f2759893c28c595561eca42d78789cbfa10",
+    "normalizedRecordHash": "38265e4e5db641f756fb8dd039af1f2759893c28c595561eca42d78789cbfa10",
+    "coreRecordHash": "38265e4e5db641f756fb8dd039af1f2759893c28c595561eca42d78789cbfa10",
+    "hashParity": true,
+    "landingType": "provider.resource.metric",
+    "normalizedType": "provider.resource.metric",
+    "coreType": "provider.resource.metric",
+    "typeParity": true,
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "runtimeInstanceId": "ugv-runtime-test-1",
+    "deploymentId": "ugv-test-deployment",
+    "occurredAt": "2026-08-20T10:18:53.357Z",
+    "ingestedAt": "2026-08-20T14:32:25.723Z"
+  },
+  "processorContract": {
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "otlpAttributeBodyIdentityMismatchFailsClosed": true,
+    "collectorIdentityAllowlistEnabled": true,
+    "acceptedLiveFlowImpliesIngressIdentityValidationPassed": true
+  },
+  "timeSemantics": {
+    "occurredAtPreserved": true,
+    "ingestTimeDoesNotOverwriteOccurredAt": true,
+    "observedFifoDelaySeconds": 15212
+  },
+  "taskCorrelation": {
+    "taskLevelRecordObservedForCurrentRun": false,
+    "externalExecutionIdObservedForCurrentRun": false,
+    "operationNameObservedForCurrentRun": false,
+    "reason": "Only historical provider.resource.state and provider.resource.metric records had reached ClickHouse at capture time."
+  }
+}

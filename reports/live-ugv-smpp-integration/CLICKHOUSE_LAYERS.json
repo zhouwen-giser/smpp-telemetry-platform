@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:32:25.723Z",
+  "status": "PARTIAL",
+  "reasonCode": "FOUR_LAYER_HISTORICAL_PROVIDEROPS_PARITY_CURRENT_RUNTIME_EPOCH_NOT_REACHED",
+  "clickHouse": {
+    "container": "smpp-telemetry-ugv-joint-clickhouse-1",
+    "image": "clickhouse/clickhouse-server:25.3.14.14",
+    "architecture": "amd64",
+    "health": "healthy"
+  },
+  "x86DevelopmentOverride": {
+    "path": "deploy/development/compose.x86_64.override.yaml",
+    "officialPrebuiltImageUsed": true,
+    "rootArm64ReleasePathChanged": false,
+    "overrideRemovesClickHouseBuildOnly": true
+  },
+  "migration": {
+    "container": "smpp-telemetry-ugv-joint-telemetry-migrate-1",
+    "status": "exited",
+    "exitCode": 0,
+    "startedAt": "2026-08-20T14:01:48.915365823Z",
+    "finishedAt": "2026-08-20T14:01:50.554342597Z",
+    "files": [
+      "001_databases.sql",
+      "002_meta.sql",
+      "003_landing.sql",
+      "004_normalized.sql",
+      "005_core.sql",
+      "006_serving.sql",
+      "007_stable_smpp_lineage.sql"
+    ]
+  },
+  "inventory": {
+    "telemetry_landing": {
+      "tables": 3,
+      "views": 1
+    },
+    "telemetry_normalized": {
+      "tables": 4,
+      "views": 0
+    },
+    "telemetry_core": {
+      "tables": 10,
+      "views": 0
+    },
+    "telemetry_serving": {
+      "tables": 0,
+      "views": 8
+    }
+  },
+  "layerCounts": {
+    "landing": 42469,
+    "normalized": 42469,
+    "core": 42469,
+    "serving": 42469,
+    "countParity": true
+  },
+  "landing": {
+    "physicalRows": 42469,
+    "uniqueRecordIds": 42469,
+    "duplicatePhysicalRows": 0,
+    "minOccurredAt": "2026-08-10T12:02:26.667Z",
+    "maxOccurredAt": "2026-08-20T10:18:53.357Z",
+    "minIngestedAt": "2026-08-20T14:14:31.688Z",
+    "maxIngestedAt": "2026-08-20T14:32:25.723Z",
+    "newestEventFifoLagSeconds": 15212,
+    "rowsOccurredAfterCurrentRuntimeStart": 0,
+    "recordTypes": {
+      "provider.resource.metric": 13568,
+      "provider.resource.state": 28901
+    }
+  },
+  "dataQuality": {
+    "conflicts": 0,
+    "rejected": 0,
+    "normalizationDeadLetters": 0
+  },
+  "qualificationBoundary": "All four layers have parity for real historical Runtime ProviderOps currently draining from the durable FIFO. No current-runtime-epoch row was visible at capture time."
+}

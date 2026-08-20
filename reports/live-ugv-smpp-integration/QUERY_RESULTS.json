@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:32:46.733Z",
+  "status": "PARTIAL",
+  "reasonCode": "RESOURCE_PROVIDEROPS_QUERY_PASS_CURRENT_TASK_CHAIN_NOT_AVAILABLE",
+  "queryApi": {
+    "container": "smpp-telemetry-ugv-joint-query-api-1",
+    "health": {
+      "httpStatus": 200,
+      "status": "ok"
+    },
+    "filtersExercised": [
+      "providerId",
+      "runtimeInstanceId",
+      "deploymentId",
+      "recordId"
+    ],
+    "filtersSupportedByContract": [
+      "providerId",
+      "resourceId",
+      "taskId",
+      "externalExecutionId",
+      "operationName",
+      "recordId",
+      "traceId",
+      "runtimeInstanceId",
+      "deploymentId",
+      "from",
+      "to",
+      "recordType",
+      "eventCategory",
+      "deliveryClass"
+    ],
+    "sample": {
+      "dataCount": 1,
+      "sourceProvenance": true,
+      "dataWatermark": "2026-08-20T14:32:25.723Z",
+      "recordId": "7cfdc860-c498-59ea-b639-17433532f3b7",
+      "recordHash": "38265e4e5db641f756fb8dd039af1f2759893c28c595561eca42d78789cbfa10",
+      "recordType": "provider.resource.metric",
+      "providerId": "isr.vehicle.ugv.ugv1",
+      "runtimeInstanceId": "ugv-runtime-test-1",
+      "deploymentId": "ugv-test-deployment",
+      "resourceId": "vehicle:ugv1",
+      "operationName": null,
+      "occurredAt": "2026-08-20T10:18:53.357Z",
+      "ingestedAt": "2026-08-20T14:32:25.723Z"
+    },
+    "projectionWatermark": {
+      "projectionId": "core-smpp-v1",
+      "projectionVersion": 1,
+      "dataWatermark": "2026-08-20T14:32:46.733Z",
+      "projectedFacts": 43165
+    },
+    "dataQualitySummaryCount": 0
+  },
+  "grafana": {
+    "healthHttpStatus": 200,
+    "database": "ok",
+    "version": "12.1.0",
+    "dashboardProvisioned": "overview.json",
+    "clickHouseDatasourceProvisioned": true,
+    "runtimePrometheusDatasourceProvisioned": true,
+    "clickHousePluginVersion": "4.20.0",
+    "dashboardProvisioningFinished": true,
+    "sanityOnly": true
+  },
+  "notDemonstrated": [
+    "current-run taskId query",
+    "current-run externalExecutionId query",
+    "current-run operationName query",
+    "live point-navigation correlation"
+  ]
+}

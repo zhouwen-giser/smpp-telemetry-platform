@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:31:03.300Z",
+  "status": "PASS",
+  "processor": {
+    "container": "smpp-telemetry-ugv-joint-telemetry-processor-1",
+    "containerHealth": "healthy",
+    "imageRevision": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+    "healthReady": {
+      "httpStatus": 200,
+      "status": "ready",
+      "requiredTargets": true
+    }
+  },
+  "wal": {
+    "segments": 1,
+    "entries": 39469,
+    "totalBytes": 52721268,
+    "currentBytes": 52721268,
+    "pendingWrites": 0,
+    "maxPendingWrites": 1024,
+    "writeFailed": false,
+    "checkpoint": {
+      "id": "target:standalone-smpp",
+      "segment": 1,
+      "offsetEnd": 52683888,
+      "updatedAt": "2026-08-20T14:31:03.215Z"
+    },
+    "pendingByCheckpoint": 28
+  },
+  "target": {
+    "targetId": "standalone-smpp",
+    "targetType": "standalone_smpp_clickhouse",
+    "projectionId": "core-smpp-v1",
+    "projectionVersion": 1,
+    "enabled": true,
+    "runningAtInstant": false,
+    "lastError": null,
+    "pending": 28
+  },
+  "metrics": {
+    "processorReceivedRecordsTotal": 39469,
+    "processorAcceptedRecordsTotal": 39469,
+    "processorWalWriteFailed": 0,
+    "processorWalWriteQueueDepth": 0,
+    "projectionTargetBatchesTotal": 1211
+  },
+  "configuration": {
+    "walMaxPendingWrites": 1024,
+    "shutdownTimeoutMs": 10000,
+    "exportIntervalMs": 500,
+    "requireCollectorId": true,
+    "allowedCollectorIds": [
+      "smpp-ugv-joint-collector-1"
+    ],
+    "shadowTargetEnabled": false
+  },
+  "durabilityImplementation": {
+    "atomicClassifyAndAppend": true,
+    "serializedWrites": true,
+    "boundedWriteQueue": true,
+    "checkpointFsyncAndAtomicRename": true,
+    "checkpointBoundaryValidation": true,
+    "writeFailurePoisonsUntilRestart": true,
+    "boundedShutdownDrain": true
+  },
+  "liveFaultInjection": "NOT_EXECUTED",
+  "note": "Counts are an instantaneous read while the durable Runtime backlog was actively draining."
+}
