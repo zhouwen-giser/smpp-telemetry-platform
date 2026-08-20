@@ -17,7 +17,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
 COPY telemetry-schema ./telemetry-schema
-COPY contracts ./contracts
+COPY contracts ./dist/contracts
 RUN mkdir -p /var/lib/smpp-telemetry/wal && chown -R node:node /var/lib/smpp-telemetry
 USER node
 CMD ["node", "dist/telemetry-processor/src/apps/index.js"]

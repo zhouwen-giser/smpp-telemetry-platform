@@ -19,6 +19,8 @@ test('one-click deployment assets exist and include all containers',async()=>{
   assert.equal(packagedCompose,compose,'deployment compose copy must match the root compose exactly');
   assert.match(compose,/WAL_MAX_PENDING_WRITES/);
   assert.match(compose,/PROCESSOR_SHUTDOWN_TIMEOUT_MS/);
+  const processorDockerfile=await readFile(new URL('telemetry-processor/Dockerfile',root),'utf8');
+  assert.match(processorDockerfile,/COPY contracts \.\/dist\/contracts/);
   const clickhouseDockerfile=await readFile(new URL('clickhouse-arm64/Dockerfile',root),'utf8');
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_REF=v25\.3\.14\.14-lts/);
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_COMMIT=84d6b30ad528e77d787ab7a2437406c1e2a5887a/);
