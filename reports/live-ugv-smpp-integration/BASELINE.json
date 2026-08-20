@@ -1,13 +1,16 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:30:03.678Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PASS",
   "repository": "zhouwen-giser/smpp-telemetry-platform",
   "origin": "https://github.com/zhouwen-giser/smpp-telemetry-platform.git",
   "baseBranch": "origin/main",
   "baseSha": "d713f71b4c93f981d5bce05b65ed71f5ed5814b6",
   "workBranch": "codex/goal-02-live-ugv-smpp-integration",
-  "codeHeadSha": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+  "branchHeadShaBeforeLatestWatermarkUpdate": "96fc7eb6fc88b4f353c48a624a0f59dbc566d0ed",
+  "branchHeadCommitKind": "evidence-report-only",
+  "lastCodeChangingCommitSha": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+  "deployedTelemetryCodeRevision": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
   "commits": [
     {
       "sha": "a0be9935",
@@ -19,7 +22,14 @@
     },
     {
       "sha": "4de0e7e7",
-      "subject": "fix(deploy): package ProviderOps catalog with processor"
+      "subject": "fix(deploy): package ProviderOps catalog with processor",
+      "kind": "code-and-deployed-image"
+    },
+    {
+      "sha": "96fc7eb6",
+      "subject": "docs(evidence): record live UGV telemetry integration",
+      "kind": "evidence-report-only",
+      "deployedAsProcessorImage": false
     }
   ],
   "host": {
@@ -40,7 +50,8 @@
   },
   "jointRuntime": {
     "branch": "codex/goal-ugv-runtime-telemetry-joint-integration",
-    "deployedRevision": "9f1e4a50b2ab80813f1affd6f820990bf129b64e"
+    "deployedRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "startedAt": "2026-08-20T15:03:34.496626185Z"
   },
   "safety": {
     "readOnlyEvidenceOnly": true,

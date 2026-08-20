@@ -1,17 +1,17 @@
 # UGV Runtime × Provider × Telemetry 联合调试 — Telemetry 侧最终报告
 
-生成时间：2026-08-20T14:39:12.937Z
+生成时间：2026-08-20T15:11:42.679Z
 
 最终结论：`UGV_SMPP_TELEMETRY_JOINT_PARTIAL` / `EXTERNAL_INTERFACE_BLOCKED`。
 
-Telemetry 组件链已经能够接收真实 Runtime durable ProviderOps backlog，并完成 `Collector → Processor/WAL → ClickHouse landing/normalized/core/serving → Query API/Grafana` 的投影。当前证据不能升级为完整联合验收：Runtime 历史 FIFO backlog 尚未归零，当前 Runtime 启动后的新 UGV 事件尚未到达 ClickHouse；任务包要求的受控 live duplicate、故障恢复矩阵和 live point navigation 也未完成。
+Telemetry 组件链已经能够接收真实 Runtime durable ProviderOps backlog，并完成 `Collector → Processor/WAL → ClickHouse landing/normalized/core/serving → Query API/Grafana` 的投影。最终 live ProviderOps 已在 Runtime 数据库中精确证明，且 `google.protobuf.Struct` payload 完整；但该记录仍被历史 FIFO 挡在 Telemetry 之外。当前证据不能升级为完整联合验收：Runtime 历史 backlog 尚未归零，当前 Runtime 启动后的新 UGV 事件尚未到达 ClickHouse；任务包要求的受控 live duplicate、故障恢复矩阵和 live point navigation 也未完成。
 
 ## 版本与部署
 
 - Telemetry 基线：`d713f71b4c93f981d5bce05b65ed71f5ed5814b6`。
-- Telemetry 代码 HEAD：`4de0e7e7cf1434bc2da051542f7b21a7e88b15d7`。
+- Telemetry 分支在本次水位更新前的 HEAD 为证据提交 `96fc7eb6fc88b4f353c48a624a0f59dbc566d0ed`；最后一个代码变更及实际 Processor 部署镜像 revision 均为 `4de0e7e7cf1434bc2da051542f7b21a7e88b15d7`，未把报告提交当作 live image revision。
 - Telemetry 分支：`codex/goal-02-live-ugv-smpp-integration`。
-- 联合 Runtime/Provider 部署修订：`9f1e4a50b2ab80813f1affd6f820990bf129b64e`。
+- 联合 Runtime/Provider 最终部署修订：`eaa36df380e7542f25f359d55c829e12d843738b`，Runtime 启动时间 `2026-08-20T15:03:34.496626185Z`。
 - 主机为 `x86_64`，仅开发 override 使用官方 `clickhouse/clickhouse-server:25.3.14.14` amd64 镜像；根 Compose 的 ARM64 源码构建发布路径保持不变。
 - `telemetry-migrate` 退出码为 0，`001` 至 `007` migration 均已加载。
 
@@ -32,12 +32,13 @@ Telemetry 组件链已经能够接收真实 Runtime durable ProviderOps backlog�
 - Collector accepted/sent：均增加 799，约 `51.866 records/s`。
 - Collector refused：0。
 - Processor ready；WAL 写队列 `0/1024`，`writeFailed=false`。
-- 采样时 ClickHouse 四层计数一致：landing/normalized/core/serving 均为 42,469。
-- landing 的 42,469 条记录 ID 全部唯一；conflict、rejected、normalization DLQ 均为 0。
+- `2026-08-20T14:32:25.723Z` 的历史快照中，ClickHouse 四层计数一致：landing/normalized/core/serving 均为 42,469。
+- 最新 landing-only 水位为 134,864 行、134,864 个唯一 record ID，最大 `occurredAt=2026-08-20T10:45:55.689Z`，最大 `ingestedAt=2026-08-20T15:07:40.656Z`。此处未把 134,864 误写成当前四层一致计数。
+- 先前四层快照中 conflict、rejected、normalization DLQ 均为 0。
 - 抽样 record 在 landing、normalized、core 的 record hash 完全一致。
 - Query API 可用 provider/runtime/deployment/record 四个维度返回同一记录；Grafana 数据库健康，ClickHouse 与 Runtime Prometheus datasource 已 provision。
 
-以上事件的 `occurredAt` 最晚为 `2026-08-20T10:18:53.357Z`，而当前 Runtime 于 `2026-08-20T14:19:12.771Z` 启动；采样时当前 Runtime epoch 的 ClickHouse 行数为 0。因此这里只证明“真实历史 durable ProviderOps 正在 live 传输和投影”，不把它写成“当前运行产生的新事件已端到端落库”。
+最新 Telemetry landing 事件的 `occurredAt` 最晚为 `2026-08-20T10:45:55.689Z`，而最终 Runtime 于 `2026-08-20T15:03:34.496626185Z` 启动；采样时当前 Runtime epoch 的 ClickHouse landing 行数为 0。因此这里只证明“真实历史 durable ProviderOps 正在 live 传输和投影”，不把它写成“当前运行产生的新事件已端到端落库”。最终 live ProviderOps 的完整 Struct payload 目前只在 Runtime durable 数据库内得到精确证明。
 
 ## 回归
 
@@ -50,7 +51,7 @@ Telemetry 组件链已经能够接收真实 Runtime durable ProviderOps backlog�
 
 ## 未完成门禁与阻塞
 
-1. Runtime durable backlog 在收集时仍约 81 万条，最老事件约 873,061 秒；G5 要求的 backlog/oldest-age 归零未满足，当前新事件仍排在 FIFO 后。
+1. 最新 Runtime 数据库水位：backlog 726,934；状态水位为 CLAIMED 44、PENDING 127,413、RETRY_WAIT 599,514、DELIVERED 136,156、EXHAUSTED 166,347，最老 backlog 约 874,895 秒。导出器在查询期间持续运行，各水位不声明为同一原子算术快照。G5 要求的 backlog/oldest-age 归零未满足，当前新事件仍排在 FIFO 后。
 2. 只到达 `provider.resource.state` 与 `provider.resource.metric` 历史记录；当前 run 的 task、command、recovery、externalExecutionId、operationName 关联尚不可查询。
 3. 未执行 deliberate live duplicate/conflict 注入。实现与 56 项回归已通过，但不能替代 live gate。
 4. 未执行 Collector、Processor、ClickHouse、Runtime ingress 等完整受控 outage/recovery 矩阵。普通部署切换期间 Provider 明确记录了 transport failure/retry/drop，证明“无静默失败”，但不构成受控恢复 PASS。
@@ -64,7 +65,7 @@ Telemetry 组件链已经能够接收真实 Runtime durable ProviderOps backlog�
 | Source Mapping | PASS | Runtime、Collector 与映射身份一致 |
 | Collector live transport | PARTIAL | 历史真实 backlog 正在流动，当前 run 尚未到达 |
 | Processor/WAL | PASS | ready、有界、无 write failure |
-| ClickHouse layers | PARTIAL | 历史 backlog 四层计数/hash 一致；当前 run 为 0 |
+| ClickHouse layers | PARTIAL | 14:32 历史快照四层 42,469 一致；15:07 仅确认 landing 134,864，当前 run 为 0 |
 | Query/Grafana | PARTIAL | 资源历史事件可查；当前 Task 链不可查 |
 | Duplicate/conflict | PARTIAL | 实现/回归 PASS，deliberate live 未执行 |
 | Rate/backpressure | PARTIAL | backlog drain 已测，规定的 idle/nav/terminal 阶段未完成 |

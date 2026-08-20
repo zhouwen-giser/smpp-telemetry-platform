@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:32:25.723Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "CANONICAL_IDENTITY_PARITY_PASS_ON_HISTORICAL_BACKLOG_CURRENT_RUN_PENDING",
   "sourceIdentity": {
@@ -11,7 +11,7 @@
     "runtimeInstanceId": "ugv-runtime-test-1",
     "deploymentId": "ugv-test-deployment",
     "collectorId": "smpp-ugv-joint-collector-1",
-    "rowsWithExactIdentityAtCapture": 42469
+    "rowsWithExactIdentityAtPriorTelemetryCapture": 42469
   },
   "canonicalSample": {
     "recordId": "7cfdc860-c498-59ea-b639-17433532f3b7",
@@ -46,5 +46,20 @@
     "externalExecutionIdObservedForCurrentRun": false,
     "operationNameObservedForCurrentRun": false,
     "reason": "Only historical provider.resource.state and provider.resource.metric records had reached ClickHouse at capture time."
+  },
+  "currentLiveRuntimeProviderOps": {
+    "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "runtimeStartedAt": "2026-08-20T15:03:34.496626185Z",
+    "evidenceSource": "read-only Runtime PostgreSQL durable ProviderOps row inspection",
+    "verifiedInRuntimeDatabase": true,
+    "providerOpsEnvelopeVerified": true,
+    "payloadEncoding": "google.protobuf.Struct",
+    "structPayloadComplete": true,
+    "providerResourceIdentityPresent": true,
+    "rawPayloadRecordedInThisReport": false,
+    "visibleInTelemetryLanding": false,
+    "telemetryLandingCurrentRuntimeEpochRows": 0,
+    "blockedByHistoricalDurableFifo": true,
+    "qualificationBoundary": "This is exact Runtime-database evidence for the final live ProviderOps payload, not evidence that the record has crossed Collector/Processor/ClickHouse."
   }
 }

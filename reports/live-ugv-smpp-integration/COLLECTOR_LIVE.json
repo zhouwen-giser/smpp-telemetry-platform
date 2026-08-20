@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:35:24.919Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "HISTORICAL_RUNTIME_PROVIDEROPS_FLOWING_CURRENT_EPOCH_FIFO_PENDING",
   "evidenceLevel": "READ_ONLY_LIVE_PASS",
@@ -49,15 +49,32 @@
     "netDrain": 686,
     "netDrainPerSecond": 44.531,
     "endOldestAgeSeconds": 873060.725246,
-    "backlogReachedZero": false
+    "backlogReachedZero": false,
+    "latestRuntimeDatabaseSnapshot": {
+      "capturedAt": "2026-08-20T15:07:40.656Z",
+      "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+      "backlog": 726934,
+      "claimed": 44,
+      "pending": 127413,
+      "retryWait": 599514,
+      "delivered": 136156,
+      "exhausted": 166347,
+      "oldestBacklogAgeSeconds": 874895,
+      "backlogReachedZero": false,
+      "note": "Backlog and status counts were read while the exporter was active; they are retained as observed watermarks and are not asserted to be one atomic arithmetic total."
+    }
   },
   "provenance": {
     "sourceVectorUsedForThisEvidence": false,
     "manualInsertUsed": false,
     "sendSampleUsed": false,
     "flowObserved": "real Runtime durable ProviderOps backlog",
-    "currentRuntimeStartedAt": "2026-08-20T14:19:12.771047178Z",
+    "currentRuntimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "currentRuntimeStartedAt": "2026-08-20T15:03:34.496626185Z",
     "currentRuntimeEpochRowsObservedInClickHouse": 0,
+    "currentLiveProviderOpsVerifiedInRuntimeDatabase": true,
+    "currentLiveProviderOpsStructPayloadComplete": true,
+    "currentLiveProviderOpsVisibleInTelemetry": false,
     "qualificationBoundary": "The live transport is proven for historical durable ProviderOps. It is not evidence that current-run UGV events have reached storage."
   },
   "gate": {

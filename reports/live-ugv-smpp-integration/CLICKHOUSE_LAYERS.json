@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:32:25.723Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "FOUR_LAYER_HISTORICAL_PROVIDEROPS_PARITY_CURRENT_RUNTIME_EPOCH_NOT_REACHED",
   "clickHouse": {
@@ -50,31 +50,36 @@
     }
   },
   "layerCounts": {
+    "capturedAt": "2026-08-20T14:32:25.723Z",
     "landing": 42469,
     "normalized": 42469,
     "core": 42469,
     "serving": 42469,
-    "countParity": true
+    "countParity": true,
+    "scope": "historical four-layer snapshot; not the latest landing watermark"
   },
   "landing": {
-    "physicalRows": 42469,
-    "uniqueRecordIds": 42469,
+    "capturedAt": "2026-08-20T15:07:40.656Z",
+    "physicalRows": 134864,
+    "uniqueRecordIds": 134864,
     "duplicatePhysicalRows": 0,
     "minOccurredAt": "2026-08-10T12:02:26.667Z",
-    "maxOccurredAt": "2026-08-20T10:18:53.357Z",
+    "maxOccurredAt": "2026-08-20T10:45:55.689Z",
     "minIngestedAt": "2026-08-20T14:14:31.688Z",
-    "maxIngestedAt": "2026-08-20T14:32:25.723Z",
-    "newestEventFifoLagSeconds": 15212,
+    "maxIngestedAt": "2026-08-20T15:07:40.656Z",
+    "newestEventFifoLagSeconds": 15704.967,
     "rowsOccurredAfterCurrentRuntimeStart": 0,
-    "recordTypes": {
+    "recordTypeCountsAtPriorFourLayerSnapshot": {
+      "capturedAt": "2026-08-20T14:32:25.723Z",
       "provider.resource.metric": 13568,
       "provider.resource.state": 28901
     }
   },
   "dataQuality": {
+    "capturedAt": "2026-08-20T14:32:25.723Z",
     "conflicts": 0,
     "rejected": 0,
     "normalizationDeadLetters": 0
   },
-  "qualificationBoundary": "All four layers have parity for real historical Runtime ProviderOps currently draining from the durable FIFO. No current-runtime-epoch row was visible at capture time."
+  "qualificationBoundary": "The prior 14:32:25 four-layer snapshot had parity for 42,469 historical Runtime ProviderOps. The latest 15:07:40 read updates landing only to 134,864 rows; no claim is made that all four current layer counts equal 134,864. No event from the Runtime started at 15:03:34 was visible in landing."
 }

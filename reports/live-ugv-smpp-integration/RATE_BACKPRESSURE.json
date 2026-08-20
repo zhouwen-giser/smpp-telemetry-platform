@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:35:24.919Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "BACKLOG_DRAIN_MEASURED_PRESCRIBED_IDLE_NAV_TERMINAL_PHASES_NOT_RUN",
   "sampleWindow": {
@@ -22,7 +22,22 @@
     "oldestAgeSecondsAtEnd": 873060.725246,
     "auditExportAttemptsStart": 39100,
     "auditExportAttemptsEnd": 39900,
-    "currentRunEventsLikelyQueuedBehindHistoricalFifo": true
+    "currentRunEventsLikelyQueuedBehindHistoricalFifo": true,
+    "latestDatabaseSnapshot": {
+      "capturedAt": "2026-08-20T15:07:40.656Z",
+      "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+      "runtimeStartedAt": "2026-08-20T15:03:34.496626185Z",
+      "backlog": 726934,
+      "claimed": 44,
+      "pending": 127413,
+      "retryWait": 599514,
+      "delivered": 136156,
+      "exhausted": 166347,
+      "oldestBacklogAgeSeconds": 874895,
+      "currentLiveProviderOpsStructVerifiedInRuntimeDatabase": true,
+      "currentRuntimeEpochRowsInTelemetryLanding": 0,
+      "note": "The exporter was active during the read-only queries, so backlog and per-state watermarks are not asserted to be one atomic arithmetic snapshot."
+    }
   },
   "processor": {
     "writeQueueDepthAtSnapshot": 0,

@@ -1,15 +1,17 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:39:12.937Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "IMPLEMENTATION_AND_REGRESSION_PASS_DELIBERATE_LIVE_INJECTION_NOT_RUN",
   "liveObservedData": {
-    "landingPhysicalRowsAtSample": 42469,
-    "landingUniqueRecordIdsAtSample": 42469,
+    "landingSnapshotAt": "2026-08-20T15:07:40.656Z",
+    "landingPhysicalRowsAtSample": 134864,
+    "landingUniqueRecordIdsAtSample": 134864,
     "duplicatePhysicalRowsAtSample": 0,
-    "conflictRowsAtSample": 0,
-    "rejectedRowsAtSample": 0,
-    "normalizationDeadLettersAtSample": 0,
+    "qualityTablesSnapshotAt": "2026-08-20T14:32:25.723Z",
+    "conflictRowsAtPriorSample": 0,
+    "rejectedRowsAtPriorSample": 0,
+    "normalizationDeadLettersAtPriorSample": 0,
     "canonicalOverwriteObserved": false
   },
   "implementation": {

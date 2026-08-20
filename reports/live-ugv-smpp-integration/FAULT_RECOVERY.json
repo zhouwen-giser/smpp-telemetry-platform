@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:39:12.937Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PARTIAL",
   "reasonCode": "CONTROLLED_LIVE_FAULT_MATRIX_NOT_COMPLETED",
   "currentState": {
@@ -10,6 +10,8 @@
     "queryApi": "healthy",
     "grafana": "healthy",
     "runtime": "healthy-and-ready",
+    "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "runtimeStartedAt": "2026-08-20T15:03:34.496626185Z",
     "processorWalWriteFailed": false,
     "processorTargetLastError": null
   },

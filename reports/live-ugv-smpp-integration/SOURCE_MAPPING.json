@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "capturedAt": "2026-08-20T14:30:03.678Z",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
   "status": "PASS",
   "mappingVersion": 4,
   "sourceMapping": {
@@ -19,6 +19,8 @@
     "validTo": null
   },
   "runtimeConfiguration": {
+    "deployedRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "startedAt": "2026-08-20T15:03:34.496626185Z",
     "otelEnabled": true,
     "otelEndpoint": "http://host.docker.internal:4318",
     "otelTlsMode": "disabled",
