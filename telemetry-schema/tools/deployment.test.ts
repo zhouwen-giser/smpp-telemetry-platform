@@ -17,6 +17,8 @@ test('one-click deployment assets exist and include all containers',async()=>{
   assert.doesNotMatch(compose,/ports: \["\$\{OTLP_GRPC_PORT/);
   const packagedCompose=await readFile(new URL('deploy/compose/compose.yaml',root),'utf8');
   assert.equal(packagedCompose,compose,'deployment compose copy must match the root compose exactly');
+  assert.match(compose,/WAL_MAX_PENDING_WRITES/);
+  assert.match(compose,/PROCESSOR_SHUTDOWN_TIMEOUT_MS/);
   const clickhouseDockerfile=await readFile(new URL('clickhouse-arm64/Dockerfile',root),'utf8');
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_REF=v25\.3\.14\.14-lts/);
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_COMMIT=84d6b30ad528e77d787ab7a2437406c1e2a5887a/);
@@ -57,4 +59,17 @@ test('projection target output includes standalone and SDAR shadow targets',asyn
   const cfg=JSON.parse(await readFile(new URL('config/projection-targets.example.json',root),'utf8'));
   assert.equal(cfg.targets.find(x=>x.targetId==='standalone-smpp')?.enabled,true);
   assert.equal(cfg.targets.find(x=>x.targetId==='sdar-warehouse-shadow')?.enabled,false);
+});
+test('x86_64 development override replaces only the ClickHouse build path',async()=>{
+  const example=await readFile(new URL('.env.example',root),'utf8');
+  const override=await readFile(new URL('deploy/development/compose.x86_64.override.yaml',root),'utf8');
+  assert.match(example,/^SMPP_SOURCE_ID=[A-Za-z0-9][A-Za-z0-9._:-]+$/m);
+  const qualificationExample=await readFile(new URL('deploy/stable-smpp-integration/.env.example',root),'utf8');
+  assert.match(qualificationExample,/^SMPP_SOURCE_ID=smpp\.production\.ugv-direct$/m);
+  assert.match(override,/image: clickhouse\/clickhouse-server:25\.3\.14\.14/);
+  assert.match(override,/platform: linux\/amd64/);
+  assert.match(override,/build: !reset null/);
+  assert.match(override,/pull_policy: missing/);
+  assert.match(override,/otel-collector:[\s\S]*host\.docker\.internal:host-gateway/);
+  assert.doesNotMatch(override,/telemetry-processor:|query-api:|grafana:/);
 });
