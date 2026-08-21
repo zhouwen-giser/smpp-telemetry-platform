@@ -1,0 +1,20 @@
+{
+  "status": "PARTIAL",
+  "staticPolicy": "PASS",
+  "normalization": "PASS",
+  "providerLocalQuality": "PASS",
+  "tests": { "passed": 63, "failed": 0 },
+  "typecheck": {
+    "status": "BASELINE_DEBT_NO_NEW_DIAGNOSTICS",
+    "baselineDiagnostics": 500,
+    "currentDiagnostics": 476,
+    "baselineNormalizedUnique": 280,
+    "currentNormalizedUnique": 266,
+    "newNormalizedUnique": 0
+  },
+  "liveUgv": "PARTIAL",
+  "completionTokenEmitted": false,
+  "automaticMergeAuthorized": false,
+  "automaticTagAuthorized": false,
+  "automaticReleaseAuthorized": false
+}

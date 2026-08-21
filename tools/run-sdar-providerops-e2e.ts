@@ -15,6 +15,7 @@ const envelopes=fixtures.valid.map((fixture,index)=>{
     providerId:'warehouse-provider',runtimeVersion:'2.0.0-rc.1',instanceId:'runtime-replica-1',
     taskId:`provider-task-${runId}`,resourceId:`resource-${runId}`,resourceType:'smpp-resource',
     externalExecutionId:`execution-${runId}`,operationName:'providerops.integration',
+    providerEventId:`provider-event-${runId}`,
     providerEventSequence:index===1?3:index===2?2:index+1,
     occurredAt:new Date(occurredBase+index*1000).toISOString(),
     emittedAt:new Date(occurredBase+index*1000+100).toISOString(),

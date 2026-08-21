@@ -86,9 +86,9 @@ export class TelemetryProcessor {
       this.metrics.inc('processor_duplicate_total');
       return{status:'duplicate',recordId:envelope.recordId};
     }
-    if(outcome.classification==='conflict'){
+    if(outcome.classification==='conflict'||outcome.classification==='semantic_conflict'){
       this.metrics.inc('processor_conflict_total');
-      return{status:'conflict',recordId:envelope.recordId,errorCode:'RECORD_HASH_CONFLICT'};
+      return{status:'conflict',recordId:envelope.recordId,errorCode:outcome.semanticCode??'RECORD_HASH_CONFLICT'};
     }
     const entry=outcome.entry;
     this.metrics.inc('processor_accepted_records_total');

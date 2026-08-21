@@ -1,1 +1,44 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';import {calculateProviderOpsRecordHash} from '../src/packages/canonical/canonical.js';import {envelope,mapping} from './helpers.js';function entry(e){return{record:{envelope:e,mapping,receivedAt:'2026-07-18T03:12:11Z',trustedContext:{deploymentId:'smpp-d1',collectorId:'c1'}}};}test('normalizer emits canonical fact and source-neutral provenance',()=>{const f=new SmppProviderOpsNormalizerV1().normalize(entry(envelope()))[0];assert.equal(f.sourceSystem,'smpp');assert.equal(f.factHash.length,64);assert.match(f.sourceInstanceUrn,/urn:telemetry:/);});test('2 SDAR x 2 SMPP relations remain distinct N:N facts',()=>{const n=new SmppProviderOpsNormalizerV1(),rels=[];for(const [i,smppTask] of ['p1','p2'].entries()){const e=envelope({recordId:i===0?'d56fda7f-f41a-5f54-96c8-0ee0edcb7de5':'b56fda7f-f41a-5f54-96c8-0ee0edcb7de5',taskId:smppTask,attributes:{correlation:{originSystem:'sdar',originDeploymentId:'sdar-d1',originTaskIds:['s1','s2']}}});e.recordHash=calculateProviderOpsRecordHash(e);rels.push(...n.normalize(entry(e))[0].relations);}assert.equal(rels.length,4);assert.equal(new Set(rels.map(r=>r.relationId)).size,4);assert.equal(new Set(rels.map(r=>`${r.sourceEntityUrn}->${r.targetEntityUrn}`)).size,4);});test('canonical top-level trace/span win and source lineage is preserved',()=>{const e=envelope({traceId:'1'.repeat(32),spanId:'2'.repeat(16),providerEventId:'evt-1',providerEventSequence:7,resourceId:'ugv-01',resourceType:'ugv',externalExecutionId:'execution-1',eventType:'resource.state',attributes:{traceId:'3'.repeat(32),spanId:'4'.repeat(16)}});e.recordHash=calculateProviderOpsRecordHash(e);const fact=new SmppProviderOpsNormalizerV1().normalize(entry(e))[0];assert.equal(fact.correlation.traceId,'1'.repeat(32));assert.equal(fact.correlation.spanId,'2'.repeat(16));assert.equal(fact.payload.providerEventId,'evt-1');assert.equal(fact.payload.providerEventSequence,7);assert.equal(fact.payload.externalExecutionId,'execution-1');assert.equal(fact.payload.resourceType,'ugv');});
+// @ts-nocheck
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';
+import {calculateProviderOpsRecordHash} from '../src/packages/canonical/canonical.js';
+import {envelope,mapping} from './helpers.js';
+
+function entry(e){return{record:{envelope:e,mapping,receivedAt:'2026-07-18T03:12:11Z',trustedContext:{deploymentId:'smpp-d1',collectorId:'c1'}}};}
+
+test('normalizer emits canonical fact and source-neutral provenance',()=>{
+  const f=new SmppProviderOpsNormalizerV1().normalize(entry(envelope()))[0];
+  assert.equal(f.sourceSystem,'smpp');
+  assert.equal(f.factHash.length,64);
+  assert.match(f.sourceInstanceUrn,/urn:telemetry:/);
+  assert.equal(f.correlation.authoritative,false);
+  assert.equal(f.correlation.maySelectFacts,false);
+});
+
+test('2 SDAR x 2 SMPP relations remain distinct non-authoritative hints',()=>{
+  const n=new SmppProviderOpsNormalizerV1(),rels=[];
+  for(const [i,smppTask] of ['p1','p2'].entries()){
+    const e=envelope({recordId:i===0?'d56fda7f-f41a-5f54-96c8-0ee0edcb7de5':'b56fda7f-f41a-5f54-96c8-0ee0edcb7de5',taskId:smppTask,attributes:{correlation:{originSystem:'sdar',originDeploymentId:'sdar-d1',originTaskIds:['s2','s1','s1']}}});
+    e.recordHash=calculateProviderOpsRecordHash(e);
+    rels.push(...n.normalize(entry(e))[0].relations);
+  }
+  assert.equal(rels.length,4);
+  assert.equal(new Set(rels.map(r=>r.relationId)).size,4);
+  assert.equal(new Set(rels.map(r=>`${r.sourceEntityUrn}->${r.targetEntityUrn}`)).size,4);
+  assert.ok(rels.every((r)=>r.bindingSource==='provider_correlation_metadata'));
+  assert.ok(rels.every((r)=>r.confidenceClass==='traced'));
+  assert.ok(rels.every((r)=>r.reconciliationProvenance.authority===false&&r.reconciliationProvenance.mayOverrideBinding===false));
+});
+
+test('canonical top-level trace/span win and source lineage is preserved',()=>{
+  const e=envelope({traceId:'1'.repeat(32),spanId:'2'.repeat(16),providerEventId:'evt-1',providerEventSequence:7,resourceId:'ugv-01',resourceType:'ugv',externalExecutionId:'execution-1',eventType:'resource.state',attributes:{traceId:'3'.repeat(32),spanId:'4'.repeat(16)}});
+  e.recordHash=calculateProviderOpsRecordHash(e);
+  const fact=new SmppProviderOpsNormalizerV1().normalize(entry(e))[0];
+  assert.equal(fact.correlation.traceId,'1'.repeat(32));
+  assert.equal(fact.correlation.spanId,'2'.repeat(16));
+  assert.equal(fact.payload.providerEventId,'evt-1');
+  assert.equal(fact.payload.providerEventSequence,7);
+  assert.equal(fact.payload.externalExecutionId,'execution-1');
+  assert.equal(fact.payload.resourceType,'ugv');
+});

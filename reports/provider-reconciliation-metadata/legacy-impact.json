@@ -1,0 +1,9 @@
+{
+  "mode": "development_direct_cutover",
+  "legacyAliasReadCompatibility": false,
+  "legacyAuthoritativeRelationCompatibility": false,
+  "historicalRowsRewritten": false,
+  "newLegacyInputDisposition": "rejected",
+  "reasonCode": "SMPP_ORIGIN_METADATA_INVALID",
+  "rationale": "The user explicitly stated that erroneous old development data does not require compatibility."
+}

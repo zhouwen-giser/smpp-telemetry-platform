@@ -1,0 +1,9 @@
+{
+  "policy": "smpp.providerops-correlation-policy/v1.1",
+  "canonicalProducer": "tools/run-sdar-providerops-e2e.ts",
+  "canonicalProducerEmitsOriginMetadata": true,
+  "liveUgvCurrentEpochOriginMetadataObserved": false,
+  "liveUgvStatus": "PARTIAL",
+  "legacyAliasesAccepted": false,
+  "note": "Development cutover intentionally rejects old aliases and does not reinterpret erroneous old data."
+}

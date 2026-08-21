@@ -1,0 +1,4 @@
+producer,input,binding_source,confidence_class,authority,may_select_facts,classification
+SMPP normalizer,providerops.correlation,explicit_contract,authoritative,true,implicit,baseline_defect
+SMPP normalizer,providerops.correlation,provider_correlation_metadata,traced,false,false,repaired_reconciliation_hint
+SDAR closure,sdar_core.remote_task_binding,sdar_binding_authority,derived_from_authority,true,true,out_of_scope_authority

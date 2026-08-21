@@ -1,0 +1,9 @@
+field,canonical_location,authority,selection_authority,validation,projection
+originSystem,attributes.correlation.originSystem,false,false,"required when an origin ID is present; max 64",provenance discriminator
+originDeploymentId,attributes.correlation.originDeploymentId,false,false,"required for SDAR hint URNs; max 256",relation hint URN only
+originRuntimeInstanceIds,attributes.correlation.originRuntimeInstanceIds,false,false,"array max 64; ID max 256; deduplicated and sorted",origin_sdar_runtime_ids for originSystem=sdar
+originTaskIds,attributes.correlation.originTaskIds,false,false,"array max 64; ID max 256; deduplicated and sorted",origin_sdar_task_ids for originSystem=sdar
+originInvocationIds,attributes.correlation.originInvocationIds,false,false,"array max 64; ID max 256; deduplicated and sorted",origin_sdar_invocation_ids for originSystem=sdar
+legacy attributes.origin*,forbidden,false,false,SMPP_ORIGIN_METADATA_INVALID,none
+payload.origin*,forbidden,false,false,SMPP_ORIGIN_METADATA_INVALID,none
+Episode/Case/Run/evaluation IDs,forbidden,false,false,SMPP_EVALUATION_DOMAIN_IDENTITY_FORBIDDEN,none

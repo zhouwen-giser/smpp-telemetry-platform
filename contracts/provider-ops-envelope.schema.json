@@ -174,7 +174,21 @@
       "format": "date-time"
     },
     "attributes": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "correlation": {
+          "type": "object",
+          "properties": {
+            "originSystem": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "originDeploymentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "originRuntimeInstanceIds": { "type": "array", "maxItems": 64, "items": { "type": "string", "minLength": 1, "maxLength": 256 } },
+            "originTaskIds": { "type": "array", "maxItems": 64, "items": { "type": "string", "minLength": 1, "maxLength": 256 } },
+            "originInvocationIds": { "type": "array", "maxItems": 64, "items": { "type": "string", "minLength": 1, "maxLength": 256 } }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
     },
     "payload": {}
   },

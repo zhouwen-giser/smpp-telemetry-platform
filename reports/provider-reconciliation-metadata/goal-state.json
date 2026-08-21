@@ -1,0 +1,12 @@
+{
+  "staticCodeStatus": "PASS",
+  "testStatus": "PASS",
+  "typecheckStatus": "BASELINE_DEBT_NO_NEW_DIAGNOSTICS",
+  "liveUgvStatus": "PARTIAL",
+  "crossRepositoryVerticalStatus": "BLOCKED",
+  "completionTokenEligible": false,
+  "blockers": [
+    "current Runtime epoch ProviderOps records have not crossed the historical FIFO into Telemetry landing",
+    "no current live UGV origin claim and relation hint was observed end to end"
+  ]
+}

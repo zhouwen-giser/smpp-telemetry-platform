@@ -1,0 +1,13 @@
+{
+  "status": "PASS_STATIC",
+  "bindingSource": "provider_correlation_metadata",
+  "confidenceClass": "traced",
+  "producerSystem": "smpp",
+  "claimSource": "providerops.correlation",
+  "authority": false,
+  "maySelectFacts": false,
+  "mayOverrideBinding": false,
+  "sourceLineageRequired": true,
+  "projectionId": "smpp-origin-reconciliation-hint-v1.1",
+  "projectionVersion": 2
+}

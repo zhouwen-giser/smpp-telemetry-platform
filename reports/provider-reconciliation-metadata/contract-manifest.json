@@ -1,0 +1,15 @@
+{
+  "manifestVersion": "smpp.provider-reconciliation-metadata-manifest/v1",
+  "policy": "smpp.providerops-correlation-policy/v1.1",
+  "sourceBase": "76b307fac184b3738d29c95350993cec79b8256b",
+  "assets": [
+    { "path": "contracts/providerops-correlation-policy.v1.1.json", "sha256": "4894aa59b16975d6cc53e81315f8ace659579da7a1b7585e7041b0d21c74ea4d" },
+    { "path": "contracts/provider-ops-envelope.schema.json", "sha256": "40706f44f33906694975fae87bfcc520a72605710299cc9e17a6b2df0a6b19bf" },
+    { "path": "telemetry-schema/contracts/relation/entity-relation-fact-v1.schema.json", "sha256": "d7629fe160e803091b175dd270020d1704fd53709125bba452222751e192e07a" },
+    { "path": "telemetry-processor/src/packages/validation/provider-correlation-policy.ts", "sha256": "6492ae633e46f6e2e9226986579d973bada74ae55a26b18086b9b2eb00464b43" },
+    { "path": "telemetry-processor/src/packages/validation/validation.ts", "sha256": "184811c8e44669f4d1c14c9a482e4d4e696981d2ce57ee1b04cab3fd15895a83" },
+    { "path": "telemetry-processor/src/packages/normalization/smpp-provider-ops-v1.ts", "sha256": "e9b2282cd55cdeb2f39dc5ae445d360f250bc2169e21b44ee7eae6d8beafe853" },
+    { "path": "telemetry-processor/src/packages/projection/sdar-shared-warehouse-projection.ts", "sha256": "d7a8799593ac3822b448dfb149672fff4a48da78c200086330085da36647bd44" },
+    { "path": "telemetry-processor/src/packages/wal/wal.ts", "sha256": "15a1d3439bb23071fc08bda0529f795433aaa4fdeb4613c02af3e027174399b5" }
+  ]
+}

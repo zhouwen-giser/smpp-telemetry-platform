@@ -1,4 +1,5 @@
 import { sha256Canonical, uuidV5 } from '../canonical/canonical.js';
+import { normalizeProviderCorrelation, PROVIDER_CORRELATION_POLICY_ID, PROVIDER_CORRELATION_POLICY_VERSION } from '../validation/provider-correlation-policy.js';
 
 function requiredIdentity(value, name) {
   if (typeof value !== 'string' || value.length === 0) throw new Error(`${name}_REQUIRED`);
@@ -9,40 +10,8 @@ export function entityUrn({ tenantId, sourceSystem, deploymentId, entityType, lo
   return `urn:telemetry:${encodeURIComponent(requiredIdentity(tenantId, 'TENANT_ID'))}:${requiredIdentity(sourceSystem, 'SOURCE_SYSTEM')}:${encodeURIComponent(requiredIdentity(deploymentId, 'DEPLOYMENT_ID'))}:${requiredIdentity(entityType, 'ENTITY_TYPE')}:${encodeURIComponent(requiredIdentity(localId, 'LOCAL_ID'))}`;
 }
 
-const array = (value) => value == null ? [] : (Array.isArray(value) ? value : [value]);
-const uniqueStrings = (values) => [...new Set(values.filter((value) => typeof value === 'string' && value.length > 0))];
-
 function correlationOf(envelope) {
-  const attributes = envelope.attributes ?? {};
-  const correlation = attributes.correlation ?? {};
-  return {
-    correlationId: envelope.correlationId ?? correlation.correlationId ?? attributes.correlationId ?? null,
-    causationRecordId: envelope.causationRecordId ?? correlation.causationRecordId ?? attributes.causationRecordId ?? null,
-    traceId: envelope.traceId ?? correlation.traceId ?? attributes.traceId ?? null,
-    spanId: envelope.spanId ?? correlation.spanId ?? attributes.spanId ?? null,
-    routeId: correlation.routeId ?? attributes.routeId ?? null,
-    attemptNo: correlation.attemptNo ?? attributes.attemptNo ?? null,
-    originSystem: correlation.originSystem ?? attributes.originSystem ?? null,
-    originDeploymentId: correlation.originDeploymentId ?? attributes.originDeploymentId ?? null,
-    originRuntimeInstanceIds: uniqueStrings([
-      ...array(correlation.originRuntimeInstanceIds),
-      ...array(correlation.originRuntimeInstanceId),
-      ...array(attributes.originRuntimeInstanceIds),
-      ...array(attributes.originRuntimeInstanceId)
-    ]),
-    originTaskIds: uniqueStrings([
-      ...array(correlation.originTaskIds),
-      ...array(correlation.originTaskId),
-      ...array(attributes.originTaskIds),
-      ...array(attributes.originTaskId)
-    ]),
-    originInvocationIds: uniqueStrings([
-      ...array(correlation.originInvocationIds),
-      ...array(correlation.originInvocationId),
-      ...array(attributes.originInvocationIds),
-      ...array(attributes.originInvocationId)
-    ])
-  };
+  return normalizeProviderCorrelation(envelope);
 }
 
 const LINEAGE_FIELDS = [
@@ -62,7 +31,7 @@ function sourcePayload(envelope) {
 export class SmppProviderOpsNormalizerV1 {
   constructor() {
     this.normalizerId = 'smpp-provider-ops-v1';
-    this.normalizerVersion = 2;
+    this.normalizerVersion = 3;
   }
 
   normalize(entry) {
@@ -124,7 +93,8 @@ export class SmppProviderOpsNormalizerV1 {
         normalizerId: this.normalizerId,
         normalizerVersion: this.normalizerVersion,
         mappingVersion: mapping.mappingVersion,
-        policyVersion: mapping.policyVersion
+        policyVersion: mapping.policyVersion,
+        providerQuality: entry.record.providerQuality ?? { status: 'unknown', reasonCodes: [] }
       }
     };
     const relations = this.#relations(base, correlation, refs, deploymentId);
@@ -143,20 +113,20 @@ export class SmppProviderOpsNormalizerV1 {
     const relations = [];
     for (const id of correlation.originTaskIds) {
       const source = entityUrn({ tenantId: fact.tenantId, sourceSystem: 'sdar', deploymentId: originDeploymentId, entityType: 'task', localId: id });
-      relations.push(this.#relation(fact, source, target, 'invokes', 'authoritative', correlation));
+      relations.push(this.#relation(fact, source, target, 'invokes', correlation));
     }
     for (const id of correlation.originInvocationIds) {
       const source = entityUrn({ tenantId: fact.tenantId, sourceSystem: 'sdar', deploymentId: originDeploymentId, entityType: 'invocation', localId: id });
-      relations.push(this.#relation(fact, source, target, 'delegates_to', 'authoritative', correlation));
+      relations.push(this.#relation(fact, source, target, 'delegates_to', correlation));
     }
     for (const id of correlation.originRuntimeInstanceIds) {
       const source = entityUrn({ tenantId: fact.tenantId, sourceSystem: 'sdar', deploymentId: originDeploymentId, entityType: 'runtime', localId: id });
-      relations.push(this.#relation(fact, source, targetProvider ?? target, 'served_by', 'authoritative', correlation));
+      relations.push(this.#relation(fact, source, targetProvider ?? target, 'served_by', correlation));
     }
     return relations;
   }
 
-  #relation(fact, source, target, type, confidence, correlation) {
+  #relation(fact, source, target, type, correlation) {
     return {
       relationId: uuidV5(`${fact.factId}|${source}|${target}|${type}`),
       relationType: type,
@@ -175,11 +145,24 @@ export class SmppProviderOpsNormalizerV1 {
       routeId: correlation.routeId,
       attemptNo: correlation.attemptNo == null ? null : Number(correlation.attemptNo),
       evidenceFactIds: [fact.factId],
-      bindingSource: 'explicit_contract',
-      confidenceClass: confidence,
+      bindingSource: 'provider_correlation_metadata',
+      confidenceClass: 'traced',
+      reconciliationProvenance: {
+        producerSystem: 'smpp',
+        claimSource: 'providerops.correlation',
+        semanticClass: 'source_declared_reconciliation_claim',
+        authority: false,
+        maySelectFacts: false,
+        mayOverrideBinding: false,
+        sourceRecordId: fact.sourceRecordId,
+        sourceRecordHash: fact.sourceRecordHash,
+        factId: fact.factId,
+        policyId: PROVIDER_CORRELATION_POLICY_ID,
+        policyVersion: PROVIDER_CORRELATION_POLICY_VERSION
+      },
       createdAt: fact.receivedAt,
-      projectionId: 'smpp-sdar-relation-v1',
-      projectionVersion: 1
+      projectionId: 'smpp-origin-reconciliation-hint-v1.1',
+      projectionVersion: 2
     };
   }
 }

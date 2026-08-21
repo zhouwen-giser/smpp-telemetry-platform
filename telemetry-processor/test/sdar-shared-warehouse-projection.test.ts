@@ -1,3 +1,4 @@
+// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';
@@ -35,6 +36,14 @@ test('typed relation mapper preserves N:N facts with parsed entity identities an
   assert.deepEqual(new Set(rows.map((row)=>row.source_entity_id)),new Set(['sdar-task-1','sdar-task-2']));
   assert.deepEqual(new Set(rows.map((row)=>row.target_entity_id)),new Set(['smpp-task-a','smpp-task-b']));
   assert.ok(rows.every((row)=>row.smpp_source_id==='smpp.test.provider-one'&&row.source_record_hash.length===64));
+  assert.ok(rows.every((row)=>row.binding_source==='provider_correlation_metadata'&&row.confidence_class==='traced'));
+});
+
+test('origin arrays require SDAR origin and observed_at falls back to the normalized fact timestamp',()=>{
+  const projection=new SdarSharedWarehouseProjectionV1();
+  const nonSdar=projection.project(fact({attributes:{correlation:{originSystem:'other',originTaskIds:['foreign-task']}}}))[0].row;
+  assert.deepEqual(nonSdar.origin_sdar_task_ids,[]);
+  assert.equal(nonSdar.observed_at,'2026-07-18T03:12:10.120Z');
 });
 
 test('SmppUrnParserV1 rejects non-canonical, missing and ambiguous URNs',()=>{
