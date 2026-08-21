@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
+  "status": "PARTIAL",
+  "reasonCode": "CONTROLLED_LIVE_FAULT_MATRIX_NOT_COMPLETED",
+  "currentState": {
+    "collector": "healthy",
+    "processor": "healthy-and-ready",
+    "clickHouse": "healthy",
+    "queryApi": "healthy",
+    "grafana": "healthy",
+    "runtime": "healthy-and-ready",
+    "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "runtimeStartedAt": "2026-08-20T15:03:34.496626185Z",
+    "processorWalWriteFailed": false,
+    "processorTargetLastError": null
+  },
+  "controlledScenarios": {
+    "collectorOutageRecovery": "NOT_EXECUTED",
+    "processorOutageRecovery": "NOT_EXECUTED",
+    "clickHouseOutageRecovery": "NOT_EXECUTED",
+    "runtimeIngressOutageRecovery": "NOT_EXECUTED",
+    "runtimeRestartSameTask": "NOT_EXECUTED_WITH_A_LIVE_TASK",
+    "providerRestartNoRedispatch": "NOT_EXECUTED_WITH_A_LIVE_TASK",
+    "mqttOutageRecovery": "NOT_EXECUTED",
+    "deviceMcpOutageRecovery": "NOT_EXECUTED",
+    "liveDuplicateReplay": "NOT_EXECUTED"
+  },
+  "ordinaryDeploymentObservation": {
+    "runtimeStartedAt": "2026-08-20T14:19:12.771047178Z",
+    "providerStartedAt": "2026-08-20T14:18:30.283501753Z",
+    "transientProviderTelemetryFailuresWereVisible": true,
+    "providerTelemetryDroppedAfterBoundedRetry": 64,
+    "laterDeliveryIssueObserved": false,
+    "qualifiesAsControlledRecoveryTest": false
+  },
+  "regressionEvidence": {
+    "walPartialTailRecovery": "PASS",
+    "checkpointCorruptionFailsStartupClosed": "PASS",
+    "checkpointOutsideFrameBoundaryFailsStartupClosed": "PASS",
+    "writeFailurePoisonsStoreAndDrainFailsClosed": "PASS",
+    "targetFailureKeepsIndependentCheckpoints": "PASS",
+    "targetRestartReplaysPendingWithoutDoubleAdvancingStandalone": "PASS",
+    "boundedShutdownDrain": "IMPLEMENTED"
+  },
+  "qualificationBoundary": "Healthy startup and unit-level recovery semantics do not replace the required controlled live outage/recovery matrix."
+}

@@ -4,6 +4,7 @@ secrets/*.txt
 !secrets/.gitkeep
 *.log
 *.tmp
+.env
 .DS_Store
 .codex/
 dist/

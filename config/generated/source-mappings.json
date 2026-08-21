@@ -2,21 +2,21 @@
   "version": 4,
   "serviceInventory": [
     {
-      "name": "sdar-ugv-runtime",
-      "address": "http://192.168.1.7:19100"
+      "name": "ugv-runtime",
+      "address": "http://host.docker.internal:19100"
     }
   ],
   "mappings": [
     {
-      "collectorId": "smpp-gateway-ugv-1",
-      "trustDomain": "sdar-ugv-runtime-mtls",
-      "deploymentId": "production-ugv-direct",
+      "collectorId": "smpp-ugv-joint-collector-1",
+      "trustDomain": "local-development",
+      "deploymentId": "ugv-test-deployment",
       "providerId": "isr.vehicle.ugv.ugv1",
-      "instanceId": "production-ugv-direct-1",
-      "smppSourceId": "smpp.production.ugv-direct",
+      "instanceId": "ugv-runtime-test-1",
+      "smppSourceId": "smpp.ugv-test-deployment.ugv-runtime-test-1",
       "tenantId": "tenant-local",
-      "projectId": "smpp-local",
-      "environment": "qualification",
+      "projectId": "ugv-joint-integration",
+      "environment": "development",
       "sourceProduct": "sdar-mcp-provider-platform",
       "mappingVersion": 4,
       "policyVersion": 1,

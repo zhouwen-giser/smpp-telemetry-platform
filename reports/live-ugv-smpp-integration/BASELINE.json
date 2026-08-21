@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
+  "status": "PASS",
+  "repository": "zhouwen-giser/smpp-telemetry-platform",
+  "origin": "https://github.com/zhouwen-giser/smpp-telemetry-platform.git",
+  "baseBranch": "origin/main",
+  "baseSha": "d713f71b4c93f981d5bce05b65ed71f5ed5814b6",
+  "workBranch": "codex/goal-02-live-ugv-smpp-integration",
+  "branchHeadShaBeforeLatestWatermarkUpdate": "96fc7eb6fc88b4f353c48a624a0f59dbc566d0ed",
+  "branchHeadCommitKind": "evidence-report-only",
+  "lastCodeChangingCommitSha": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+  "deployedTelemetryCodeRevision": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+  "commits": [
+    {
+      "sha": "a0be9935",
+      "subject": "fix(processor): harden concurrent WAL recovery"
+    },
+    {
+      "sha": "8de44cf0",
+      "subject": "feat(development): add x86 joint integration profile"
+    },
+    {
+      "sha": "4de0e7e7",
+      "subject": "fix(deploy): package ProviderOps catalog with processor",
+      "kind": "code-and-deployed-image"
+    },
+    {
+      "sha": "96fc7eb6",
+      "subject": "docs(evidence): record live UGV telemetry integration",
+      "kind": "evidence-report-only",
+      "deployedAsProcessorImage": false
+    }
+  ],
+  "host": {
+    "architecture": "x86_64",
+    "rootComposeReleaseArchitecture": "arm64",
+    "developmentOverride": "deploy/development/compose.x86_64.override.yaml",
+    "developmentOverrideRequired": true
+  },
+  "deployment": {
+    "composeProject": "smpp-telemetry-ugv-joint",
+    "transportMode": "development",
+    "processorImageRevision": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+    "processorImageArchitecture": "amd64",
+    "queryApiImageRevision": "8de44cf0d529d2d4cd37aadd31cdf1430da32425",
+    "clickHouseImage": "clickhouse/clickhouse-server:25.3.14.14",
+    "clickHouseImageArchitecture": "amd64",
+    "localRuntimeConfiguration": "present-untracked-and-redacted"
+  },
+  "jointRuntime": {
+    "branch": "codex/goal-ugv-runtime-telemetry-joint-integration",
+    "deployedRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "startedAt": "2026-08-20T15:03:34.496626185Z"
+  },
+  "safety": {
+    "readOnlyEvidenceOnly": true,
+    "liveControlAttempted": false,
+    "mutatingDeviceCalls": 0,
+    "fireAttempted": false,
+    "telemetryDirectMqttOrDeviceMcpConnection": false,
+    "secretsRecorded": false
+  },
+  "priorLiveStatus": "LIVE_SMPP_READY_PARTIAL"
+}

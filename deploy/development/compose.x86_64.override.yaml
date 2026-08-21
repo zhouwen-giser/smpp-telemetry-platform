@@ -1,0 +1,13 @@
+services:
+  clickhouse:
+    # Development-only shortcut for x86_64 integration hosts. The root Compose
+    # file remains the source-built ARM64 delivery path.
+    image: clickhouse/clickhouse-server:25.3.14.14
+    pull_policy: missing
+    platform: linux/amd64
+    build: !reset null
+  otel-collector:
+    # The Runtime is started by a separate Compose project and publishes its
+    # metrics endpoint on the host during joint integration.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

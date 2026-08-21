@@ -45,6 +45,8 @@ services:
       PROCESSOR_REQUIRE_COLLECTOR_ID: "true"
       PROCESSOR_ALLOWED_COLLECTOR_IDS: ${COLLECTOR_ID:-smpp-gateway-1}
       WAL_DIR: /var/lib/smpp-telemetry/wal
+      WAL_MAX_PENDING_WRITES: ${WAL_MAX_PENDING_WRITES:-1024}
+      PROCESSOR_SHUTDOWN_TIMEOUT_MS: ${PROCESSOR_SHUTDOWN_TIMEOUT_MS:-10000}
       SOURCE_MAPPINGS_FILE: /app/config/source-mappings.json
       PROJECTION_TARGETS_FILE: /app/config/projection-targets.json
       EXPORT_INTERVAL_MS: 500

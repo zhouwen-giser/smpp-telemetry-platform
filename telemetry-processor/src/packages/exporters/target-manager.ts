@@ -81,6 +81,7 @@ export class TargetWorker {
   }
 
   status(){return {targetId:this.target.targetId,targetType:this.target.targetType,projectionId:this.projection.projectionId,projectionVersion:this.projection.projectionVersion,enabled:this.target.enabled,running:this.running,lastError:this.lastError?.message??null,checkpoint:this.wal.checkpoint(this.checkpointId),pending:this.wal.pending(this.checkpointId,Number.MAX_SAFE_INTEGER).length};}
+  async waitForIdle(){while(this.running)await new Promise(resolve=>setTimeout(resolve,10));}
 }
 
 export class TargetManager {
@@ -91,6 +92,14 @@ export class TargetManager {
   async initialize(){for(const target of this.targets){try{await target.initialize();}catch(error){target.lastError=error;target.metrics.inc('projection_target_failures_total',{target:target.target.targetId});if(target.target.required)throw error;}}}
   start(intervalMs=1000){this.timer=setInterval(()=>void this.flush(),intervalMs);this.timer.unref();void this.flush();}
   async flush(){await Promise.all(this.targets.map(target=>target.flush()));}
+  pause(){if(this.timer){clearInterval(this.timer);this.timer=null;}}
+  async stop(timeoutMs=10000){
+    this.pause();
+    const drain=async()=>{await Promise.all(this.targets.map(target=>target.waitForIdle()));await this.flush();};
+    let timeout;
+    try{await Promise.race([drain(),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('TARGET_DRAIN_TIMEOUT')),timeoutMs);timeout.unref();})]);}
+    finally{clearTimeout(timeout);}
+  }
   statuses(){return this.targets.map(target=>target.status());}
   async pingRequired(){for(const target of this.targets.filter(value=>value.target.required))await target.client.ping();return true;}
 }

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
+  "status": "PARTIAL",
+  "reasonCode": "HISTORICAL_RUNTIME_PROVIDEROPS_FLOWING_CURRENT_EPOCH_FIFO_PENDING",
+  "evidenceLevel": "READ_ONLY_LIVE_PASS",
+  "collector": {
+    "container": "smpp-telemetry-ugv-joint-otel-collector-1",
+    "image": "otel/opentelemetry-collector-contrib:0.157.0",
+    "containerHealth": "healthy",
+    "healthEndpoint": {
+      "httpStatus": 200,
+      "status": "Server available",
+      "upSince": "2026-08-20T14:01:52.841411781Z"
+    },
+    "configValidation": {
+      "command": "/otelcol-contrib validate --config=/etc/otelcol-contrib/config.yaml",
+      "exitCode": 0
+    }
+  },
+  "otlp": {
+    "httpListener": "0.0.0.0:4318",
+    "processorExporter": "otlphttp/processor_provider_ops",
+    "processorPath": "/internal/otlp/v1/logs",
+    "sampleWindowSeconds": 15.405,
+    "start": {
+      "capturedAt": "2026-08-20T14:35:09.514Z",
+      "acceptedLogRecords": 49077,
+      "refusedLogRecords": 0,
+      "sentLogRecords": 49069
+    },
+    "end": {
+      "capturedAt": "2026-08-20T14:35:24.919Z",
+      "acceptedLogRecords": 49876,
+      "refusedLogRecords": 0,
+      "sentLogRecords": 49868
+    },
+    "delta": {
+      "acceptedLogRecords": 799,
+      "sentLogRecords": 799,
+      "refusedLogRecords": 0,
+      "acceptedPerSecond": 51.866,
+      "sentPerSecond": 51.866
+    }
+  },
+  "runtimeDurableQueue": {
+    "startBacklog": 811377,
+    "endBacklog": 810691,
+    "netDrain": 686,
+    "netDrainPerSecond": 44.531,
+    "endOldestAgeSeconds": 873060.725246,
+    "backlogReachedZero": false,
+    "latestRuntimeDatabaseSnapshot": {
+      "capturedAt": "2026-08-20T15:07:40.656Z",
+      "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+      "backlog": 726934,
+      "claimed": 44,
+      "pending": 127413,
+      "retryWait": 599514,
+      "delivered": 136156,
+      "exhausted": 166347,
+      "oldestBacklogAgeSeconds": 874895,
+      "backlogReachedZero": false,
+      "note": "Backlog and status counts were read while the exporter was active; they are retained as observed watermarks and are not asserted to be one atomic arithmetic total."
+    }
+  },
+  "provenance": {
+    "sourceVectorUsedForThisEvidence": false,
+    "manualInsertUsed": false,
+    "sendSampleUsed": false,
+    "flowObserved": "real Runtime durable ProviderOps backlog",
+    "currentRuntimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+    "currentRuntimeStartedAt": "2026-08-20T15:03:34.496626185Z",
+    "currentRuntimeEpochRowsObservedInClickHouse": 0,
+    "currentLiveProviderOpsVerifiedInRuntimeDatabase": true,
+    "currentLiveProviderOpsStructPayloadComplete": true,
+    "currentLiveProviderOpsVisibleInTelemetry": false,
+    "qualificationBoundary": "The live transport is proven for historical durable ProviderOps. It is not evidence that current-run UGV events have reached storage."
+  },
+  "gate": {
+    "runtimeToCollector": "PASS",
+    "collectorToProcessor": "PASS",
+    "stableIdentity": "PASS",
+    "backlogDrainToZero": "FAIL",
+    "currentRunCorrelation": "NOT_OBSERVED"
+  }
+}

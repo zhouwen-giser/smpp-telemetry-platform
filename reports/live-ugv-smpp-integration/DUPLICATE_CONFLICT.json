@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
+  "status": "PARTIAL",
+  "reasonCode": "IMPLEMENTATION_AND_REGRESSION_PASS_DELIBERATE_LIVE_INJECTION_NOT_RUN",
+  "liveObservedData": {
+    "landingSnapshotAt": "2026-08-20T15:07:40.656Z",
+    "landingPhysicalRowsAtSample": 134864,
+    "landingUniqueRecordIdsAtSample": 134864,
+    "duplicatePhysicalRowsAtSample": 0,
+    "qualityTablesSnapshotAt": "2026-08-20T14:32:25.723Z",
+    "conflictRowsAtPriorSample": 0,
+    "rejectedRowsAtPriorSample": 0,
+    "normalizationDeadLettersAtPriorSample": 0,
+    "canonicalOverwriteObserved": false
+  },
+  "implementation": {
+    "classificationAndAppendShareOneSerializedBoundary": true,
+    "sameRecordIdSameHash": "duplicate-without-new-canonical-fact",
+    "sameRecordIdDifferentHash": "conflict-isolated-without-overwrite",
+    "concurrentHighWaterCheckSerialized": true
+  },
+  "regression": {
+    "concurrentIdenticalRecords": {
+      "inputCount": 20,
+      "accepted": 1,
+      "duplicate": 19,
+      "status": "PASS"
+    },
+    "concurrentSameIdDifferentHash": {
+      "accepted": 1,
+      "conflict": 1,
+      "status": "PASS"
+    },
+    "checkpointMonotonicity": "PASS",
+    "duplicateAtHighWater": "PASS"
+  },
+  "liveDeliberateDuplicateTest": "NOT_EXECUTED",
+  "liveDeliberateConflictTest": "NOT_EXECUTED",
+  "sourceVectorUsedAsLiveEvidence": false
+}

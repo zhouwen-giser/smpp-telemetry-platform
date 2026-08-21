@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T14:39:12.937Z",
+  "status": "PARTIAL",
+  "reasonCode": "AFFECTED_TESTS_PASS_REPOSITORY_TYPECHECK_BASELINE_DEBT_REMAINS",
+  "repositoryHead": "4de0e7e7cf1434bc2da051542f7b21a7e88b15d7",
+  "commands": [
+    {
+      "command": "npm test",
+      "executionContext": "local loopback binding permitted",
+      "exitCode": 0,
+      "tests": 56,
+      "passed": 56,
+      "failed": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "status": "PASS",
+      "note": "Executed by npm test before the test suite."
+    },
+    {
+      "command": "docker compose --env-file .env -p smpp-telemetry-ugv-joint -f compose.yaml -f deploy/development/compose.x86_64.override.yaml config --quiet",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "/otelcol-contrib validate --config=/etc/otelcol-contrib/config.yaml",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "telemetry-migrate container",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 2,
+      "status": "BASELINE_DEBT",
+      "baselineErrorCount": 628,
+      "currentErrorCount": 500,
+      "baselineNormalizedUniqueErrors": 332,
+      "currentNormalizedUniqueErrors": 280,
+      "newNormalizedUniqueErrors": 0,
+      "resolvedNormalizedUniqueErrors": 52,
+      "note": "The repository was not type-clean at the pinned base. The change adds no normalized unique TypeScript diagnostic and reduces the existing set, but a green repository-wide typecheck is not claimed."
+    }
+  ],
+  "criticalRegressionCoverage": [
+    "Collector ProviderOps selection and strict Processor ACK path",
+    "Query API bounded stable filters",
+    "OTLP JSON reaches WAL before success",
+    "atomic concurrent duplicate and conflict classification",
+    "concurrent WAL high-water enforcement",
+    "bounded WAL write queue",
+    "checkpoint monotonicity and startup fail-closed validation",
+    "WAL write failure poisoning",
+    "x86_64 development override preserves ARM64 release path",
+    "warehouse layer creation"
+  ],
+  "sandboxNote": "An initial sandboxed run could not bind two loopback HTTP test files. The identical npm test command was rerun with local loopback binding permitted and passed 56/56."
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0",
+  "capturedAt": "2026-08-20T15:07:40.656Z",
+  "status": "PARTIAL",
+  "reasonCode": "BACKLOG_DRAIN_MEASURED_PRESCRIBED_IDLE_NAV_TERMINAL_PHASES_NOT_RUN",
+  "sampleWindow": {
+    "durationSeconds": 15.405,
+    "startAt": "2026-08-20T14:35:09.514Z",
+    "endAt": "2026-08-20T14:35:24.919Z",
+    "runtimeBacklogStart": 811377,
+    "runtimeBacklogEnd": 810691,
+    "runtimeBacklogNetDrain": 686,
+    "runtimeBacklogNetDrainPerSecond": 44.531,
+    "collectorAcceptedDelta": 799,
+    "collectorSentDelta": 799,
+    "collectorRefusedDelta": 0,
+    "collectorAcceptedPerSecond": 51.866,
+    "processorRefusalObserved": false
+  },
+  "runtime": {
+    "backlogReachedZero": false,
+    "oldestAgeSecondsAtEnd": 873060.725246,
+    "auditExportAttemptsStart": 39100,
+    "auditExportAttemptsEnd": 39900,
+    "currentRunEventsLikelyQueuedBehindHistoricalFifo": true,
+    "latestDatabaseSnapshot": {
+      "capturedAt": "2026-08-20T15:07:40.656Z",
+      "runtimeRevision": "eaa36df380e7542f25f359d55c829e12d843738b",
+      "runtimeStartedAt": "2026-08-20T15:03:34.496626185Z",
+      "backlog": 726934,
+      "claimed": 44,
+      "pending": 127413,
+      "retryWait": 599514,
+      "delivered": 136156,
+      "exhausted": 166347,
+      "oldestBacklogAgeSeconds": 874895,
+      "currentLiveProviderOpsStructVerifiedInRuntimeDatabase": true,
+      "currentRuntimeEpochRowsInTelemetryLanding": 0,
+      "note": "The exporter was active during the read-only queries, so backlog and per-state watermarks are not asserted to be one atomic arithmetic snapshot."
+    }
+  },
+  "processor": {
+    "writeQueueDepthAtSnapshot": 0,
+    "writeQueueCapacity": 1024,
+    "walWriteFailed": false,
+    "standaloneTargetPendingAtSnapshot": 28,
+    "unboundedQueue": false
+  },
+  "providerRatePolicy": {
+    "resourceStateMaximumHz": 1,
+    "freshnessMetricIntervalSeconds": 10,
+    "taskLifecycleSampled": false,
+    "terminalErrorAndUncertainReservedPriority": true,
+    "implementationRegression": "PASS"
+  },
+  "providerRestartWindowObservation": {
+    "windowEndedAt": "2026-08-20T14:19:32.229Z",
+    "accepted": 17,
+    "transportFailed": 268,
+    "retry": 203,
+    "droppedAfterRetryExhaustion": 64,
+    "queueDepth": 6,
+    "queueCapacity": 1100,
+    "reasonCodesVisible": true,
+    "interpretation": "These counters were emitted while Runtime was being replaced. They prove failures were observable, but this was not a controlled rate or recovery test. No later delivery-issue log was observed."
+  },
+  "requiredPhases": {
+    "idle60Seconds": "NOT_EXECUTED_AS_CONTROLLED_PHASE",
+    "navigation60Seconds": "NOT_EXECUTED_LIVE_CONTROL_DISABLED",
+    "terminal30Seconds": "NOT_EXECUTED_LIVE_CONTROL_DISABLED"
+  }
+}
