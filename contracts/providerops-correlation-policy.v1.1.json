@@ -1,0 +1,18 @@
+{
+  "contract": "smpp.providerops-correlation-policy/v1.1",
+  "policyVersion": 1,
+  "canonicalLocation": "attributes.correlation",
+  "legacyAliasesAccepted": false,
+  "semanticClass": "source_declared_reconciliation_claim",
+  "authoritative": false,
+  "maySelectFacts": false,
+  "mayOverrideBinding": false,
+  "originIdMaxLength": 256,
+  "originArrayMaxItems": 64,
+  "relationHint": {
+    "bindingSource": "provider_correlation_metadata",
+    "confidenceClass": "traced",
+    "bindingAuthority": "sdar_core.remote_task_binding"
+  },
+  "providerTerminalIsGoalSuccess": false
+}

@@ -50,6 +50,36 @@
         "traced",
         "derived"
       ]
+    },
+    "reconciliationProvenance": {
+      "type": "object",
+      "properties": {
+        "producerSystem": { "const": "smpp" },
+        "claimSource": { "const": "providerops.correlation" },
+        "semanticClass": { "const": "source_declared_reconciliation_claim" },
+        "authority": { "const": false },
+        "maySelectFacts": { "const": false },
+        "mayOverrideBinding": { "const": false },
+        "sourceRecordId": { "type": "string", "minLength": 1 },
+        "sourceRecordHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "factId": { "type": "string", "format": "uuid" },
+        "policyId": { "const": "smpp.providerops-correlation-policy/v1.1" },
+        "policyVersion": { "const": 1 }
+      },
+      "required": [
+        "producerSystem",
+        "claimSource",
+        "semanticClass",
+        "authority",
+        "maySelectFacts",
+        "mayOverrideBinding",
+        "sourceRecordId",
+        "sourceRecordHash",
+        "factId",
+        "policyId",
+        "policyVersion"
+      ],
+      "additionalProperties": false
     }
   },
   "additionalProperties": true

@@ -1,4 +1,5 @@
 import { calculateProviderOpsRecordHash } from '../canonical/canonical.js';
+import { normalizeProviderCorrelation } from './provider-correlation-policy.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH = /^[a-f0-9]{64}$/;
 export const ALLOWED_TYPES = new Set([
@@ -16,6 +17,13 @@ export const ALLOWED_EVENT_CATEGORIES = new Set([
   'execution.progress','business_event.lifecycle'
 ]);
 export const ALLOWED_DELIVERY_CLASSES = new Set(['audit','operational']);
+const EXPECTED_EVENT_CATEGORY:Readonly<Record<string,string>>={
+  'provider.task.lifecycle':'task.lifecycle','provider.command.lifecycle':'command.lifecycle',
+  'provider.scheduler.decision':'scheduler.decision','provider.recovery.lifecycle':'recovery.lifecycle',
+  'provider.ttl.lifecycle':'ttl.lifecycle','provider.resource.state':'resource.state',
+  'provider.resource.metric':'resource.metric','provider.resource.health':'resource.health',
+  'provider.execution.progress':'execution.progress'
+};
 const TRACE_ID = /^[a-f0-9]{32}$/;
 const SPAN_ID = /^[a-f0-9]{16}$/;
 const FORBIDDEN_KEY = /(authorization(?!ContextHash)|cookie|password|passwd|api.?key|secret|private.?key|database.?url|connection.?string|token|jwt|stack|cause|raw.?input|raw.?answer|adapter.?payload)/i;
@@ -63,6 +71,15 @@ export function validateEnvelope(envelope, otlpAttributes = {}, limits = {}) {
   if (envelope.traceId !== undefined && !TRACE_ID.test(String(envelope.traceId))) return fail('TRACE_ID_INVALID');
   if (envelope.spanId !== undefined && !SPAN_ID.test(String(envelope.spanId))) return fail('SPAN_ID_INVALID');
   if (Number.isNaN(Date.parse(envelope.occurredAt)) || Number.isNaN(Date.parse(envelope.emittedAt))) return fail('TIMESTAMP_INVALID');
+  if (Date.parse(envelope.emittedAt) < Date.parse(envelope.occurredAt)) return fail('SMPP_EVENT_TIME_INVALID');
+  const expectedCategory=EXPECTED_EVENT_CATEGORY[String(envelope.recordType)]??(String(envelope.recordType).startsWith('provider.business_event.')?'business_event.lifecycle':null);
+  if (expectedCategory!==envelope.eventCategory) return fail('RECORD_EVENT_CATEGORY_MISMATCH');
+  if (envelope.recordType==='provider.task.lifecycle' && !envelope.taskId) return fail('PROVIDER_LOCAL_IDENTITY_MISSING');
+  if (envelope.recordType==='provider.command.lifecycle' && !(envelope.externalCommandId||envelope.payload?.externalCommandId)) return fail('PROVIDER_LOCAL_IDENTITY_MISSING');
+  if (String(envelope.recordType).startsWith('provider.resource.') && !envelope.resourceId) return fail('PROVIDER_LOCAL_IDENTITY_MISSING');
+  if (envelope.recordType==='provider.execution.progress' && !envelope.externalExecutionId) return fail('PROVIDER_LOCAL_IDENTITY_MISSING');
+  if (String(envelope.recordType).startsWith('provider.business_event.') && (!envelope.providerEventId||!Number.isSafeInteger(envelope.providerEventSequence)||envelope.providerEventSequence<0)) return fail('PROVIDER_LOCAL_IDENTITY_MISSING');
+  try { normalizeProviderCorrelation(envelope); } catch(error:any) { return fail(error.code??'SMPP_ORIGIN_METADATA_INVALID',error.message); }
   for (const key of ['sdar.schema.name','sdar.schema.version','sdar.record.id','sdar.record.hash']) {
     if (otlpAttributes[key] === undefined || otlpAttributes[key] === '') return fail('OTLP_CONTRACT_ATTRIBUTE_MISSING',key);
   }
