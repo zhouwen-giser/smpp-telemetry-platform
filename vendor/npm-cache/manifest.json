@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "npmLockfile": "package-lock.json",
+    "npmLockfileSha256": "4da87ee8139cc3f3e40112b8f49c05d654883d39476a854d269d8513a77ea0d9",
+    "pnpmLockfile": "pnpm-lock.yaml",
+    "pnpmLockfileSha256": "e24921d8cea8fc51216865cc95c8102e8bb5177c3a1589f56e04d04e2648afc7",
+    "equivalencePolicy": "exact external package name, version, and SHA-512 integrity",
+    "registryOrigin": "https://registry.npmjs.org"
+  },
+  "cacheFormat": {
+    "content": "content-v2",
+    "index": "index-v5",
+    "npmConsumerVersion": "10.9.8",
+    "indexMetadataPolicy": "deterministic URL and compression only; no copied host headers, credentials, tokens, logs, or wall-clock timestamps"
+  },
+  "licenseObservationScope": "Values are package-lock metadata observations, not legal review or clearance.",
+  "licenseObservations": {
+    "Apache-2.0": 1,
+    "MIT": 2
+  },
+  "totals": {
+    "packages": 3,
+    "contentObjects": 3,
+    "indexEntries": 3,
+    "contentBytes": 4718531,
+    "indexBytes": 1192,
+    "cacheBytes": 4719723
+  },
+  "aggregateContentSha256": "93d83fcf5cf13e34abc5a1c35ccf630a52ead3e2d2da4ad2934dc1eba95b546c",
+  "packages": [
+    {
+      "name": "@types/node",
+      "version": "22.20.1",
+      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.20.1.tgz",
+      "integrity": "sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==",
+      "licenseObservation": "MIT",
+      "contentPath": "_cacache/content-v2/sha512/10/03/6a38217d405cab6bee297f151c5fd493289a422e331b39b573963209a260164a7b9220402fcb3114e7719a6a36d724481d87488470f2fe0c6be951de24d5",
+      "sha512": "10036a38217d405cab6bee297f151c5fd493289a422e331b39b573963209a260164a7b9220402fcb3114e7719a6a36d724481d87488470f2fe0c6be951de24d5",
+      "size": 447075,
+      "indexPath": "_cacache/index-v5/a2/0f/7045ede9042720cbfe57ee43964745d7a0772718e3203e8ff987848ad38e"
+    },
+    {
+      "name": "typescript",
+      "version": "5.8.3",
+      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.8.3.tgz",
+      "integrity": "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==",
+      "licenseObservation": "Apache-2.0",
+      "contentPath": "_cacache/content-v2/sha512/a7/57/625ba4ea2fd2f4ee7371bd130cee130cc387395cea3fd626cbe1a0081a6480b7db254c4d57830e4a5aea1fdae4cebc283d058ed9462f86685fbbb1f80f79",
+      "sha512": "a757625ba4ea2fd2f4ee7371bd130cee130cc387395cea3fd626cbe1a0081a6480b7db254c4d57830e4a5aea1fdae4cebc283d058ed9462f86685fbbb1f80f79",
+      "size": 4250436,
+      "indexPath": "_cacache/index-v5/2c/8c/dee73f255025da3a3aa2f652826821070e2a526acbcda1c77a2baa30c1fe"
+    },
+    {
+      "name": "undici-types",
+      "version": "6.21.0",
+      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+      "licenseObservation": "MIT",
+      "contentPath": "_cacache/content-v2/sha512/8b/00/d9aa0d10006ae0f516afe47e27d0ceb87379a4479f5c27ac10a7eec2e2723482c984c5a79d6982cd3b8e1e4f802d041c236d38863cc96dd8c7744fd1fd25",
+      "sha512": "8b00d9aa0d10006ae0f516afe47e27d0ceb87379a4479f5c27ac10a7eec2e2723482c984c5a79d6982cd3b8e1e4f802d041c236d38863cc96dd8c7744fd1fd25",
+      "size": 21020,
+      "indexPath": "_cacache/index-v5/e8/ad/09d01e1a140286a104a3deaa2cda92fe426a5115039ba9b221f230288b0c"
+    }
+  ]
+}
