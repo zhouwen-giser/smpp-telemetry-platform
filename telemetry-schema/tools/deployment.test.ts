@@ -2,6 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 const root=new URL(`file://${process.cwd()}/`);
+const pinnedNodeBase='node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32';
+function assertPinnedNodeDockerfile(dockerfile:string,path:string):void{
+  const stages=dockerfile.split(/\r?\n/).map(line=>line.trim()).filter(line=>/^FROM\s+/i.test(line));
+  assert.equal(stages.length,2,`${path} must contain exactly two stages`);
+  const parsedStages=stages.map(line=>/^FROM\s+(\S+)(?:\s+AS\s+(\S+))?$/i.exec(line));
+  assert.ok(parsedStages.every(stage=>stage!==null),`${path} stages must use direct FROM references`);
+  assert.deepEqual(parsedStages.map(stage=>stage?.[1]),[pinnedNodeBase,pinnedNodeBase],`${path} builder and final-runtime stages must use the frozen Node digest`);
+  assert.equal(parsedStages[0]?.[2]?.toLowerCase(),'builder',`${path} first stage must remain the builder`);
+}
 test('one-click deployment assets exist and include all containers',async()=>{
   const compose=await readFile(new URL('compose.yaml',root),'utf8');
   for(const service of ['clickhouse:','telemetry-migrate:','telemetry-processor:','otel-collector:','query-api:','grafana:']) assert.match(compose,new RegExp(`\\n  ${service}`));
@@ -49,6 +58,19 @@ test('one-click deployment assets exist and include all containers',async()=>{
   await access(new URL('deploy.sh',root));
   await access(new URL('clickhouse-arm64/preflight.sh',root));
   await access(new URL('docs/SMPP_%E9%81%A5%E6%B5%8B%E5%B9%B3%E5%8F%B0%E4%B8%AD%E6%96%87%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E.md',root));
+});
+test('Node application Dockerfiles freeze both builder and final-runtime stages',async()=>{
+  const processorDockerfile=await readFile(new URL('telemetry-processor/Dockerfile',root),'utf8');
+  const queryDockerfile=await readFile(new URL('telemetry-dashboard/query-api/Dockerfile',root),'utf8');
+  assertPinnedNodeDockerfile(processorDockerfile,'telemetry-processor/Dockerfile');
+  assertPinnedNodeDockerfile(queryDockerfile,'telemetry-dashboard/query-api/Dockerfile');
+
+  const floating=processorDockerfile.replace(pinnedNodeBase,'node:22-alpine');
+  assert.throws(()=>assertPinnedNodeDockerfile(floating,'floating fixture'),/frozen Node digest/);
+  const mismatched=queryDockerfile.replace(pinnedNodeBase,pinnedNodeBase.replace('c610','dead'));
+  assert.throws(()=>assertPinnedNodeDockerfile(mismatched,'digest-mismatch fixture'),/frozen Node digest/);
+  const extraStage=`${processorDockerfile}\nFROM ${pinnedNodeBase} AS unexpected\n`;
+  assert.throws(()=>assertPinnedNodeDockerfile(extraStage,'extra-stage fixture'),/exactly two stages/);
 });
 test('ClickHouse DateTime64 retention expressions are compatible with the pinned image',async()=>{
   for(const name of ['003_landing.sql','005_core.sql']){

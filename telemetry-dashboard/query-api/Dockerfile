@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS builder
 WORKDIR /app
 COPY package.json tsconfig.json pnpm-workspace.yaml ./
 COPY telemetry-processor ./telemetry-processor
@@ -10,7 +10,7 @@ COPY tools ./tools
 COPY deploy/bin ./deploy/bin
 RUN npm install --include=dev --ignore-scripts && npm run build
 
-FROM node:22-alpine
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
 ARG VCS_REF=development
 LABEL org.opencontainers.image.revision=$VCS_REF
 WORKDIR /app
