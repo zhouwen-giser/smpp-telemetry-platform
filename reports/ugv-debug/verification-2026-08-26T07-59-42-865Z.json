@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "source": "live_smpp_no_synthetic_input",
+  "startedAt": "2026-08-26T07:59:42.865Z",
+  "completedAt": "2026-08-26T08:00:29.962Z",
+  "before": {
+    "otel_metrics_gauge": 934,
+    "otel_metrics_sum": 82,
+    "otel_metrics_histogram": 29,
+    "otel_metrics_exp_histogram": 0,
+    "otel_metrics_summary": 0,
+    "otel_traces": 1702,
+    "events": 3893
+  },
+  "after": {
+    "otel_metrics_gauge": 1015,
+    "otel_metrics_sum": 90,
+    "otel_metrics_histogram": 32,
+    "otel_metrics_exp_histogram": 0,
+    "otel_metrics_summary": 0,
+    "otel_traces": 1870,
+    "events": 3917
+  },
+  "queueObserved": 2,
+  "recoveredPoints": 46,
+  "outageStart": "2026-08-26T07:59:50.397Z",
+  "collectorStopAt": "2026-08-26T08:00:13.147Z",
+  "volumesRetained": true,
+  "diagnosticRetentionDays": 7,
+  "retentionEvidence": "seven live MergeTree DDLs; no synthetic backdated rows inserted",
+  "collectionProtocols": [
+    "otlp",
+    "prometheus"
+  ],
+  "taskCalls": 0,
+  "deviceToolCalls": 0,
+  "grafana": false
+}

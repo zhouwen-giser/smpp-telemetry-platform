@@ -1,0 +1,10 @@
+schema_version: 1
+sources:
+  - name: OpenTelemetry Collector Contrib ClickHouse exporter
+    repository: https://github.com/open-telemetry/opentelemetry-collector-contrib
+    pin: 89e43555904cd97c2d36605347c5d5237b1bdc8c
+    tag: v0.157.0
+    license: Apache-2.0
+    use: SQL template adaptation and existing unmodified Collector image
+    path: exporter/clickhouseexporter/internal/sqltemplates
+    adaptations: fixed identifiers, MergeTree, seven-day TTL
