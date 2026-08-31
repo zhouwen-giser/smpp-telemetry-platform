@@ -10,7 +10,7 @@ type Classification = 'new'|'duplicate'|'conflict'|'semantic_conflict';
 
 function providerIdentity(envelope:any):string|null{
   if(!envelope||typeof envelope!=='object')return null;
-  const local=envelope.taskId??envelope.externalCommandId??envelope.payload?.externalCommandId??envelope.resourceId??envelope.externalExecutionId??envelope.providerEventId;
+  const local=envelope.providerEventId??envelope.externalCommandId??envelope.payload?.externalCommandId??envelope.taskId??envelope.resourceId??envelope.externalExecutionId;
   if(typeof envelope.providerId!=='string'||typeof envelope.instanceId!=='string'||typeof local!=='string'||local.length===0)return null;
   return [envelope.providerId,envelope.instanceId,envelope.recordType,local].join('\u001f');
 }

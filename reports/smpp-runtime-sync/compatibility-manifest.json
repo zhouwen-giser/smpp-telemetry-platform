@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "sdar.smpp-telemetry-runtime-sync-compatibility/v1",
+  "goalId": "smpp-telemetry-mcp-tasks-runtime-sync-v0.1",
+  "providerOps": {
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "recordTypeCount": 16,
+    "changeClass": "additive payload semantics"
+  },
+  "normalizer": {
+    "id": "smpp-provider-ops-v1",
+    "version": 4
+  },
+  "runtimeSemantic": {
+    "schema": "internal additive document",
+    "capabilityCount": 7,
+    "readinessStatuses": ["ready", "not_ready", "conflict", "not_required"]
+  },
+  "relations": {
+    "taskExecution": {
+      "type": "task_execution_binding",
+      "authority": ["smpp_runtime_committed_binding", "smpp_runtime_reconciliation_found"]
+    },
+    "executionMission": {
+      "type": "execution_mission_binding",
+      "authority": ["provider_authoritative_mission_identity"]
+    },
+    "originHints": {
+      "authoritative": false,
+      "maySelectFacts": false,
+      "mayOverrideBinding": false
+    }
+  },
+  "timeAxes": ["occurredAt", "observedAt", "receivedAt", "normalizedAt", "projectedAt"],
+  "evaluationVerdictsProjected": false,
+  "directFactInsertUsed": false,
+  "downstreamProviderClosureV2": "compatible"
+}

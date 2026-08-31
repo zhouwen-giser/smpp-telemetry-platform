@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { validateEnvelope, validateTrustedIngress } from '../packages/validation/validation.js';
+import { restoreSmppRuntimeTransportSemantics } from '../packages/validation/smpp-runtime-semantics.js';
 
 function safeSourceHint(envelope:any):Record<string,string> {
   if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) return {};
@@ -53,7 +54,7 @@ export class TelemetryProcessor {
       this.metrics.inc('processor_permanent_reject_total',{reason:ingress.code});
       return{status:'rejected_permanent',errorCode:ingress.code};
     }
-    const envelope=logRecord.body;
+    const envelope=restoreSmppRuntimeTransportSemantics(logRecord.body);
     const receivedAt=new Date().toISOString();
     const validation:any=validateEnvelope(envelope,logRecord.attributes);
     if(!validation.ok){

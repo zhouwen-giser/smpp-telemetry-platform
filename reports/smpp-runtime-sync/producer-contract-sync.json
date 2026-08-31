@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "sdar.smpp-telemetry-producer-contract-sync/v1",
+  "producerCommit": "1e67e6e421d70a3cbce2d41bf5007e99463712fe",
+  "providerOpsSchema": "sdar.provider.ops.event/1.1.0",
+  "recordTypesRemainFrozenAt": 16,
+  "capabilities": [
+    {
+      "capabilityId": "SMPP-TASK-IDENTITY-CLOSURE",
+      "status": "synchronized",
+      "recordFamilies": ["provider.recovery.lifecycle", "provider.task.lifecycle"],
+      "identityFields": ["taskId", "externalExecutionId"],
+      "authority": "committed SMPP Runtime binding or validated reconciliation found"
+    },
+    {
+      "capabilityId": "SMPP-TASK-IDEMPOTENCY",
+      "status": "synchronized",
+      "recordFamilies": ["all ProviderOps 1.1.0 records"],
+      "identityFields": ["recordId", "recordHash", "providerEventId", "providerEventSequence"],
+      "authority": "Producer canonical hash plus Processor WAL atomic classification"
+    },
+    {
+      "capabilityId": "SMPP-DISPATCH-UNCERTAINTY",
+      "status": "synchronized",
+      "recordFamilies": ["provider.recovery.lifecycle"],
+      "selector": "attributes.semantic=dispatch.uncertainty",
+      "payloadSchemaVersion": "sdar.smpp-dispatch-uncertainty/v1",
+      "requiredFields": ["taskId", "operationName", "argumentHash", "uncertaintyClass", "redispatchAllowed=false", "occurredAt", "causalRefs"],
+      "authority": "committed_postgres on smpp-runtime-postgres-authority"
+    },
+    {
+      "capabilityId": "SMPP-TASK-RECONCILIATION",
+      "status": "synchronized",
+      "recordFamilies": ["provider.recovery.lifecycle"],
+      "selector": "attributes.semantic=task.reconciliation",
+      "payloadSchemaVersion": "sdar.smpp-reconciliation-result/v1",
+      "statuses": ["found", "not_found", "conflict", "transient_unavailable", "deferred"],
+      "requiredFields": ["taskId", "attempt", "status", "externalExecutionId", "identityValidated", "occurredAt"],
+      "authority": "only found plus identityValidated=true may create Task-to-Execution"
+    },
+    {
+      "capabilityId": "SMPP-PROVIDER-EVIDENCE",
+      "status": "synchronized",
+      "recordFamilies": ["provider.resource.state", "provider.resource.metric", "provider.resource.health", "provider.execution.progress"],
+      "selector": "attributes.sdar.evidence.kind",
+      "requiredFields": ["providerId", "taskId", "externalExecutionId", "resourceId", "providerEventId", "providerEventSequence", "occurredAt"],
+      "authority": "physical observation fact; does not create Task-to-Execution authority"
+    },
+    {
+      "capabilityId": "SMPP-BUSINESS-TERMINAL",
+      "status": "synchronized",
+      "recordFamilies": ["provider.task.lifecycle"],
+      "axes": ["mcpTaskStatus", "transportStatus", "providerExecutionStatus", "businessStatus"],
+      "additionalFields": ["isError", "reasonCode"],
+      "forbiddenFields": ["goalAchieved", "physicalSuccess", "benchmarkPass", "score"],
+      "authority": "committed_postgres on smpp-runtime-postgres-authority"
+    },
+    {
+      "capabilityId": "SMPP-MISSION-RELATION",
+      "status": "synchronized",
+      "recordFamilies": ["provider.execution.progress"],
+      "selector": "attributes.sdar.fact.kind=mission_relation",
+      "statuses": ["exact", "unresolved", "conflict"],
+      "requiredFields": ["taskId", "externalExecutionId", "relationStatus", "deviceMissionId", "sourceRecordRefs", "observedAt"],
+      "authority": "Provider-supplied mission identity; only exact creates Execution-to-DeviceMission"
+    }
+  ],
+  "forbiddenInference": [
+    "latest-row binding",
+    "time-proximity binding",
+    "trace/correlation/origin authority",
+    "synthetic DeviceMission identity",
+    "Provider terminal interpreted as Goal success"
+  ]
+}

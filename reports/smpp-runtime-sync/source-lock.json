@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "sdar.smpp-telemetry-runtime-sync-source-lock/v1",
+  "goalId": "smpp-telemetry-mcp-tasks-runtime-sync-v0.1",
+  "target": {
+    "repository": "zhouwen-giser/smpp-telemetry-platform",
+    "baseBranch": "main",
+    "baseCommit": "a5e3dea00f825c4400523c8a957e539c901ee0c6",
+    "workBranch": "codex/smpp-mcp-tasks-telemetry-sync-v0.1"
+  },
+  "producer": {
+    "repository": "zhouwen-giser/sdar-mcp-provider-platform",
+    "branch": "codex/smpp-mcp-tasks-ugv-diagnostic-support-v0.1",
+    "commit": "1e67e6e421d70a3cbce2d41bf5007e99463712fe",
+    "workingTree": "clean"
+  },
+  "downstream": {
+    "repository": "zhouwen-giser/sdar-telemetry-platform",
+    "branch": "main",
+    "commit": "3e43350dd0d0e37fe65ec318d0d9881820a88f5a",
+    "workingTree": "clean",
+    "providerClosure": "v2"
+  },
+  "providerOps": {
+    "schemaName": "sdar.provider.ops.event",
+    "schemaVersion": "1.1.0",
+    "payloadCatalog": "smpp.providerops-payload-catalog/v1.1",
+    "recordTypeCount": 16,
+    "compatibilityDecision": "additive payload semantics; no new record type"
+  },
+  "sdarWarehouse": {
+    "release": "1.5.1-rc.2",
+    "migrationRange": "00..26",
+    "schemaContractHash": "sha256:78da6e9e511b7714b15a4f6ef5f2ba54578880493e2aa264f433ff1595a1d7b8",
+    "releaseDescriptorHash": "sha256:1610cf2a4cc9450193dd70abf7a516f0ea4792099ed0f34dcf2fad44d094b335"
+  },
+  "baseline": {
+    "tests": "70/70 pass before task changes",
+    "typecheck": "pre-existing repository-wide TypeScript debt; non-zero before task changes",
+    "unrelatedWorkingTreeChangesPreserved": [
+      "deploy/ugv-debug/compose.yaml",
+      "docs/UGV_DEBUG_SDAR_TARGET.md",
+      "telemetry-processor/test/debug-incremental-target.test.ts"
+    ]
+  }
+}

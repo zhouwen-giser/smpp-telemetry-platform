@@ -1,5 +1,6 @@
 import { sha256Canonical, uuidV5 } from '../canonical/canonical.js';
 import { normalizeProviderCorrelation, PROVIDER_CORRELATION_POLICY_ID, PROVIDER_CORRELATION_POLICY_VERSION } from '../validation/provider-correlation-policy.js';
+import { inspectSmppRuntimeSemantic } from '../validation/smpp-runtime-semantics.js';
 
 function requiredIdentity(value, name) {
   if (typeof value !== 'string' || value.length === 0) throw new Error(`${name}_REQUIRED`);
@@ -22,8 +23,20 @@ const LINEAGE_FIELDS = [
   'recordType','eventCategory','deliveryClass','occurredAt','emittedAt'
 ];
 
-function sourcePayload(envelope) {
-  const payload = { attributes: envelope.attributes ?? {}, payload: envelope.payload ?? null };
+function sourcePayload(envelope, runtimeSemantic) {
+  const payload = {
+    attributes: envelope.attributes ?? {},
+    payload: envelope.payload ?? null,
+    runtimeSemantic: {
+      capabilityIds: runtimeSemantic.capabilityIds,
+      readiness: runtimeSemantic.readiness,
+      uncertainty: runtimeSemantic.uncertainty,
+      reconciliation: runtimeSemantic.reconciliation,
+      businessTerminal: runtimeSemantic.businessTerminal,
+      evidence: runtimeSemantic.evidence,
+      missionRelation: runtimeSemantic.missionRelation
+    }
+  };
   for (const key of LINEAGE_FIELDS) if (envelope[key] !== undefined) payload[key] = envelope[key];
   return payload;
 }
@@ -31,13 +44,14 @@ function sourcePayload(envelope) {
 export class SmppProviderOpsNormalizerV1 {
   constructor() {
     this.normalizerId = 'smpp-provider-ops-v1';
-    this.normalizerVersion = 3;
+    this.normalizerVersion = 4;
   }
 
   normalize(entry) {
     const { envelope, mapping, receivedAt, trustedContext } = entry.record;
     const deploymentId = requiredIdentity(trustedContext.deploymentId, 'DEPLOYMENT_ID');
     const correlation = correlationOf(envelope);
+    const runtimeSemantic = inspectSmppRuntimeSemantic(envelope);
     const refs = [];
     const add = (entityType, localId) => {
       if (typeof localId !== 'string' || localId.length === 0) return;
@@ -52,6 +66,9 @@ export class SmppProviderOpsNormalizerV1 {
     add('task', envelope.taskId);
     add('resource', envelope.resourceId);
     add('execution', envelope.externalExecutionId);
+    if (runtimeSemantic.missionRelation?.relationStatus === 'exact') {
+      add('device_mission', runtimeSemantic.missionRelation.deviceMissionId);
+    }
 
     const base = {
       canonicalEnvelopeVersion: '1.0.0',
@@ -85,10 +102,10 @@ export class SmppProviderOpsNormalizerV1 {
       relations: [],
       correlation,
       occurredAt: envelope.occurredAt,
-      observedAt: envelope.emittedAt,
+      observedAt: runtimeSemantic.observedAt,
       receivedAt,
       normalizedAt: new Date().toISOString(),
-      payload: sourcePayload(envelope),
+      payload: sourcePayload(envelope, runtimeSemantic),
       provenance: {
         normalizerId: this.normalizerId,
         normalizerVersion: this.normalizerVersion,
@@ -97,13 +114,36 @@ export class SmppProviderOpsNormalizerV1 {
         providerQuality: entry.record.providerQuality ?? { status: 'unknown', reasonCodes: [] }
       }
     };
-    const relations = this.#relations(base, correlation, refs, deploymentId);
+    const relations = this.#relations(base, correlation, refs, deploymentId, runtimeSemantic);
     const material = { ...base, relations };
     const { normalizedAt: _normalizedAt, ...stableHashMaterial } = material;
     return [{ ...material, factHash: sha256Canonical(stableHashMaterial) }];
   }
 
-  #relations(fact, correlation, refs, deploymentId) {
+  #relations(fact, correlation, refs, deploymentId, runtimeSemantic) {
+    const relations = this.#originRelations(fact, correlation, refs, deploymentId);
+    const task = refs.find((ref) => ref.entityType === 'task')?.urn;
+    const execution = refs.find((ref) => ref.entityType === 'execution')?.urn;
+    if (runtimeSemantic.binding && task && execution) {
+      relations.push(this.#authoritativeRelation(
+        fact, task, execution, 'task_execution_binding',
+        runtimeSemantic.binding.bindingSource,
+        runtimeSemantic.reconciliation?.attempt ?? null,
+        runtimeSemantic.reconciliation === null ? 'runtime_commit' : 'exact_reconciliation'
+      ));
+    }
+    const mission = refs.find((ref) => ref.entityType === 'device_mission')?.urn;
+    if (runtimeSemantic.missionRelation?.relationStatus === 'exact' && execution && mission) {
+      relations.push(this.#authoritativeRelation(
+        fact, execution, mission, 'execution_mission_binding',
+        'provider_authoritative_mission_identity', null, 'provider_observation',
+        runtimeSemantic.missionRelation.sourceRecordRefs
+      ));
+    }
+    return [...new Map(relations.map((relation) => [relation.relationId, relation])).values()];
+  }
+
+  #originRelations(fact, correlation, refs, deploymentId) {
     if (correlation.originSystem !== 'sdar') return [];
     const targetTask = refs.find((ref) => ref.entityType === 'task')?.urn;
     const targetProvider = refs.find((ref) => ref.entityType === 'provider')?.urn;
@@ -124,6 +164,47 @@ export class SmppProviderOpsNormalizerV1 {
       relations.push(this.#relation(fact, source, targetProvider ?? target, 'served_by', correlation));
     }
     return relations;
+  }
+
+  #authoritativeRelation(
+    fact, source, target, type, bindingSource, attemptNo, claimSource, sourceRecordRefs = []
+  ) {
+    return {
+      relationId: uuidV5(`${source}|${target}|${type}|v1`),
+      relationType: type,
+      relationVersion: 1,
+      tenantId: fact.tenantId,
+      projectId: fact.projectId,
+      sourceEntityUrn: source,
+      targetEntityUrn: target,
+      sourceSystem: 'smpp',
+      targetSystem: 'smpp',
+      validFrom: fact.occurredAt,
+      validTo: null,
+      correlationId: fact.correlation.correlationId,
+      traceId: fact.correlation.traceId,
+      causationFactId: fact.factId,
+      routeId: fact.correlation.routeId,
+      attemptNo,
+      evidenceFactIds: [fact.factId],
+      bindingSource,
+      confidenceClass: 'authoritative',
+      reconciliationProvenance: {
+        producerSystem: 'smpp',
+        claimSource,
+        semanticClass: type,
+        authority: true,
+        maySelectFacts: true,
+        mayOverrideBinding: false,
+        sourceRecordId: fact.sourceRecordId,
+        sourceRecordHash: fact.sourceRecordHash,
+        sourceRecordRefs,
+        factId: fact.factId
+      },
+      createdAt: fact.receivedAt,
+      projectionId: 'smpp-runtime-identity-closure-v1',
+      projectionVersion: 1
+    };
   }
 
   #relation(fact, source, target, type, correlation) {

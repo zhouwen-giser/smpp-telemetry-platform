@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "sdar.smpp-telemetry-downstream-qualification/v1",
+  "repository": "zhouwen-giser/sdar-telemetry-platform",
+  "branch": "main",
+  "commit": "3e43350dd0d0e37fe65ec318d0d9881820a88f5a",
+  "mode": "read_only",
+  "providerClosure": "v2",
+  "staticVerifier": {
+    "command": "node integrations/sdar-benchmark-server/mcp-provider-telemetry/v2/verify.mjs",
+    "result": "SMPP_BENCHMARK_HANDOFF_V2_STATIC_PASS assets=8"
+  },
+  "formalReadiness": {
+    "expectedFactCountEqualsSelectedFactCount": true,
+    "foreignFactCount": 0,
+    "unresolvedBindingCount": 0,
+    "truncated": false,
+    "hasMore": false,
+    "hintsUsedForAuthority": false
+  },
+  "compatibility": "pass",
+  "notes": [
+    "Provider Closure v2 starts from exact tenant/project/environment/Episode remote_task_binding authority.",
+    "SMPP origin, trace, correlation and relation hints remain reconciliation material only.",
+    "Runtime semantic payload and authoritative external relation provenance are additive to the existing shared projection."
+  ]
+}

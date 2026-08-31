@@ -14,6 +14,10 @@ function isPlainObject(value){return value!==null&&typeof value==='object'&&!Arr
 function validUtc(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value))return false;const parsed=Date.parse(value);return Number.isFinite(parsed);}
 function validateValue(type,value){
   if(type==='string')return typeof value==='string'&&value.length>0&&value.length<=512;
+  if(type==='nullable_string')return value===null||(typeof value==='string'&&value.length>0&&value.length<=512);
+  if(type==='boolean')return typeof value==='boolean';
+  if(type==='integer')return Number.isSafeInteger(value)&&value>=0;
+  if(type==='string_array')return Array.isArray(value)&&value.length<=256&&value.every((item)=>typeof item==='string'&&item.length>0&&item.length<=512);
   if(type==='utc')return validUtc(value);
   if(type==='percent')return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
   return false;

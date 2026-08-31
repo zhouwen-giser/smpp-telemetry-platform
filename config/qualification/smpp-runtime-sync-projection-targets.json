@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "targetId": "standalone-smpp",
+      "targetType": "standalone_smpp_clickhouse",
+      "enabled": true,
+      "required": true,
+      "acceptAllMappings": false,
+      "writeLayers": ["landing", "normalized", "core", "relation"],
+      "connection": {"url": "http://127.0.0.1:18124", "user": "default", "passwordEnv": "SMPP_RUNTIME_SYNC_CLICKHOUSE_PASSWORD"},
+      "tableMap": {},
+      "routeIds": ["standalone-smpp"]
+    }
+  ]
+}

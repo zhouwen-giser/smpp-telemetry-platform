@@ -1,0 +1,44 @@
+{
+  "contract": "smpp.runtime-providerops-semantic-fixtures/v1",
+  "producerCommit": "1e67e6e421d70a3cbce2d41bf5007e99463712fe",
+  "valid": [
+    {
+      "name": "dispatch-uncertainty",
+      "recordType": "provider.recovery.lifecycle",
+      "attributes": {"source": "committed_postgres", "semantic": "dispatch.uncertainty"},
+      "payload": {"schemaVersion": "sdar.smpp-dispatch-uncertainty/v1", "uncertaintyClass": "response_lost_after_adapter_success", "redispatchAllowed": false}
+    },
+    {
+      "name": "reconciliation-found",
+      "recordType": "provider.recovery.lifecycle",
+      "attributes": {"source": "committed_postgres", "semantic": "task.reconciliation"},
+      "payload": {"schemaVersion": "sdar.smpp-reconciliation-result/v1", "attempt": 1, "status": "found", "identityValidated": true}
+    },
+    {
+      "name": "four-axis-business-terminal",
+      "recordType": "provider.task.lifecycle",
+      "attributes": {"source": "committed_postgres"},
+      "payload": {"mcpTaskStatus": "completed", "transportStatus": "completed", "providerExecutionStatus": "completed", "businessStatus": "succeeded", "isError": false}
+    },
+    {
+      "name": "provider-evidence",
+      "recordType": "provider.resource.state",
+      "attributes": {"sdar.evidence.kind": "position"},
+      "payload": {"state": "observed"}
+    },
+    {
+      "name": "mission-relation-exact",
+      "recordType": "provider.execution.progress",
+      "attributes": {"sdar.fact.kind": "mission_relation", "sdar.mission.relation_status": "exact", "sdar.device.mission_id": "mission-7", "sdar.mission.source_record_refs": ["provider-record-1"]},
+      "payload": {"relationStatus": "exact", "deviceMissionId": "mission-7", "sourceRecordRefs": ["provider-record-1"]}
+    }
+  ],
+  "invalid": [
+    {"name": "uncertainty-redispatch", "expectedCode": "SMPP_DISPATCH_UNCERTAINTY_REDISPATCH_FORBIDDEN"},
+    {"name": "reconciliation-found-unvalidated", "expectedCode": "SMPP_RECONCILIATION_FOUND_IDENTITY_INVALID"},
+    {"name": "terminal-axis-incomplete", "expectedCode": "SMPP_TRANSPORT_STATUS_INVALID"},
+    {"name": "evidence-missing-execution", "expectedCode": "SMPP_PROVIDER_EVIDENCE_EXECUTION_ID_REQUIRED"},
+    {"name": "mission-synthetic-id", "expectedCode": "SMPP_MISSION_RELATION_IDENTITY_INVALID"},
+    {"name": "evaluation-verdict", "expectedCode": "SMPP_RUNTIME_EVALUATION_VERDICT_FORBIDDEN"}
+  ]
+}

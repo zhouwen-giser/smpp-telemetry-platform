@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fixtures from '../../contracts/provider-ops-payload-fixtures.v1.1.json' with {type:'json'};
+import runtimeFixtures from '../../contracts/smpp-runtime-semantic-fixtures.v1.json' with {type:'json'};
 import {assertPayloadCatalog,extractProviderOpsSemantics,providerOpsRecordTypes} from '../src/packages/projection/provider-ops-payload-catalog.js';
 
 test('payload catalog freezes all 16 ProviderOps record types',()=>{
@@ -22,4 +23,11 @@ test('semantic extraction uses only the per-record catalog and never scans alias
   });
   assert.deepEqual(semantics,{lifecycleStatus:'completed'});
   assert.equal('goalStatus' in semantics,false);
+});
+
+test('Runtime semantic fixtures pin the producer commit and include fail-closed cases',()=>{
+  assert.equal(runtimeFixtures.producerCommit,'1e67e6e421d70a3cbce2d41bf5007e99463712fe');
+  assert.equal(runtimeFixtures.valid.length,5);
+  assert.equal(runtimeFixtures.invalid.length,6);
+  assert.ok(runtimeFixtures.invalid.every((fixture)=>fixture.expectedCode.startsWith('SMPP_')));
 });
