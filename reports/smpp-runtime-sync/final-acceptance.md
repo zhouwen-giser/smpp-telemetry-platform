@@ -39,6 +39,8 @@ The repository-wide `pnpm typecheck` was already non-zero at the locked base due
 
 Producer `DELIVERED` and Collector ACK are not sufficient proof of Processor acceptance. A live Collector 409 demonstrated the distinction; formal evidence therefore requires Processor WAL classification, target checkpoint convergence, and a ClickHouse query. Processor downtime can still surface as Collector refusal and must not be inferred away from Producer durable state.
 
+The authorized physical-navigation follow-up did not produce a successful Task: the frozen `simulation` dispatch was rejected with `UGV_EXECUTION_MODE_UNSUPPORTED`, creating no remote task, movement, or Mission. A newer `SDAR-session` task-package request then explicitly superseded the unfinished navigation before a real-mode retry. This is recorded as a fail-closed negative case, not as skipped or successful physical evidence.
+
 ## Gate summary
 
 55 gates pass. G02 passes with a documented pre-existing baseline typecheck exception. G56 becomes pass when the final report hash manifest is generated.

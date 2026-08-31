@@ -78,6 +78,17 @@
     "collectorHostGatewayReachability": "fixed and verified",
     "controlInvokedByTelemetryTask": false
   },
+  "physicalNavigationObservation": {
+    "userAuthorized": true,
+    "sdarDispatchAttempted": true,
+    "runtimeOutcome": "UGV_EXECUTION_MODE_UNSUPPORTED",
+    "remoteTaskCreated": false,
+    "vehicleMoved": false,
+    "deviceMissionCreated": false,
+    "telemetryAuthoritativeRelationCreated": false,
+    "interpretation": "correct fail-closed negative case; no Task or Mission identity may be synthesized",
+    "followUp": "superseded by a newer SDAR-session task package request before a governed real-mode retry"
+  },
   "acknowledgementBoundary": {
     "producerDeliveredIsSufficientProofOfProjection": false,
     "collectorAckIsSufficientProofOfProjection": false,
