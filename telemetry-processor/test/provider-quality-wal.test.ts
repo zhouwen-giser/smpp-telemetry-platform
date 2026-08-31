@@ -36,3 +36,12 @@ test('WAL blocks revision and mutually exclusive terminal conflicts',async()=>{
   const terminal=await append(wal,event(3,{...base,payload:{providerRevision:'8',terminalStatus:'failed'},recordHash:'d'.repeat(64)}));
   assert.equal(terminal.semanticCode,'SMPP_PROVIDER_TERMINAL_CONFLICT');
 });
+
+test('distinct immutable provider events under one task may share an observation revision',async()=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-event-identity-'))});await wal.initialize();
+  const base={recordType:'provider.resource.state',providerId:'provider-1',instanceId:'instance-1',taskId:'task-1',observationRevision:9};
+  const position=await append(wal,event(10,{...base,providerEventId:'position-1'}));
+  const mission=await append(wal,event(11,{...base,providerEventId:'mission-1'}));
+  assert.equal(position.classification,'new');
+  assert.equal(mission.classification,'new');
+});

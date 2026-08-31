@@ -1,0 +1,57 @@
+gateId,requirement,status,evidence
+G01,Target base/source locks verified,PASS,reports/smpp-runtime-sync/source-lock.json
+G02,Baseline typecheck/test pass,PASS_WITH_BASELINE_EXCEPTION,"baseline 70/70 tests; typecheck was already non-zero before task changes"
+G03,7 producer capabilities inventoried,PASS,reports/smpp-runtime-sync/producer-contract-sync.json
+G04,No producer fields invented,PASS,"exact producer commit and emitted ProviderOps inspected and executed"
+G05,Envelope 1.1.0 compatibility decision recorded,PASS,reports/smpp-runtime-sync/compatibility-manifest.json
+G06,Old fixtures remain green,PASS,pnpm test 81/81
+G07,New semantic fixtures include invalid cases,PASS,contracts/smpp-runtime-semantic-fixtures.v1.json
+G08,Task identity deterministic,PASS,smpp-runtime-semantics.test.ts
+G09,Execution identity deterministic,PASS,smpp-runtime-semantics.test.ts
+G10,Task→Execution authority is committed SMPP binding,PASS,"binding sources restricted to committed and reconcile-found"
+G11,No latest-row fallback,PASS,normalizer source audit and tests
+G12,No time-proximity binding,PASS,normalizer source audit and tests
+G13,Origin correlation remains non-authoritative,PASS,"hintsUsedForAuthority=false and existing origin tests"
+G14,Identity conflict explicit,PASS,"WAL conflict row and readiness conflict"
+G15,Uncertainty distinct from business failure,PASS,semantic readiness plus four-axis tests
+G16,Uncertainty replay-safe,PASS,producer live E2E and WAL replay
+G17,Reconcile attempted represented,PASS,"attempt field validated and projected"
+G18,Reconcile found preserves original execution,PASS,"found requires identityValidated=true"
+G19,Reconcile not_found not auto-failure,PASS,"not_ready/SMPP_RECONCILIATION_NOT_FOUND"
+G20,Reconcile conflict blocks readiness,PASS,"conflict/SMPP_RECONCILIATION_CONFLICT"
+G21,Reconcile deferred distinct,PASS,unit test covers deferred separately
+G22,Task control state preserved,PASS,four-axis terminal payload
+G23,Transport certainty preserved,PASS,transportStatus axis
+G24,Provider execution state preserved,PASS,providerExecutionStatus axis
+G25,Business outcome preserved,PASS,businessStatus plus isError
+G26,No goalAchieved projection,PASS,forbidden verdict validation and projection tests
+G27,No physicalSuccess projection,PASS,forbidden verdict validation and projection tests
+G28,Provider observations preserve observed time,PASS,reports/smpp-runtime-sync/live-e2e.json
+G29,Provider observation identity validated,PASS,provider evidence validation test
+G30,Mission ID never synthesized,PASS,exact/unresolved/conflict tests
+G31,Core projection tests pass,PASS,pnpm test 81/81
+G32,Serving/read model tests pass,PASS,"ClickHouse serving readiness queries"
+G33,Shared warehouse projection tests pass,PASS,pnpm test 81/81
+G34,external_provider_fact provenance preserved,PASS,shared projection tests
+G35,external_entity_relation_fact authority preserved,PASS,shared projection relation tests
+G36,ClickHouse 1.5.1-rc.2 preflight passes,PASS,"exact release and two hashes pinned; preflight tests pass"
+G37,No direct fact INSERT used,PASS,migration 009 contains views only
+G38,Exact producer handoff commit pinned,PASS,1e67e6e421d70a3cbce2d41bf5007e99463712fe
+G39,Normal binding live E2E passes,PASS,reports/smpp-runtime-sync/live-e2e.json
+G40,Uncertainty live E2E passes,PASS,reports/smpp-runtime-sync/live-e2e.json
+G41,Reconcile live E2E passes,PASS,reports/smpp-runtime-sync/live-e2e.json
+G42,Business terminal live E2E passes,PASS,reports/smpp-runtime-sync/live-e2e.json
+G43,Provider evidence live E2E passes,PASS,reports/smpp-runtime-sync/live-e2e.json
+G44,Mission exact or explicit unresolved,PASS,semantic tests and serving readiness
+G45,Duplicate same ID/hash idempotent,PASS,"initial 200 then duplicate 200; one accepted row per ID"
+G46,Same ID/different hash conflicts,PASS,"intentional conflict isolated in landing conflict table"
+G47,Telemetry outage/replay converges,PASS,"WAL pending 34 then 0"
+G48,sdar-telemetry Provider Closure v2 consumes facts,PASS,SMPP_BENCHMARK_HANDOFF_V2_STATIC_PASS assets=8
+G49,hintsUsedForAuthority=false,PASS,downstream qualification and shared provenance
+G50,No foreign facts,PASS,Provider Closure v2 readiness contract
+G51,No truncation ambiguity,PASS,Provider Closure v2 readiness contract
+G52,observedAt preserved downstream,PASS,shared projection and exact timestamp tests
+G53,Conflict/unresolved maps to readiness,PASS,serving readiness query and tests
+G54,All required tests pass,PASS,pnpm test 81/81
+G55,No required live suite skipped,PASS,"exact Producer chain and outage/replay executed"
+G56,Final compatibility/handoff hashes generated,PASS,reports/smpp-runtime-sync/SHA256SUMS

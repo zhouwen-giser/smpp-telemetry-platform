@@ -1,5 +1,6 @@
 import { calculateProviderOpsRecordHash } from '../canonical/canonical.js';
 import { normalizeProviderCorrelation } from './provider-correlation-policy.js';
+import { validateSmppRuntimeSemantic } from './smpp-runtime-semantics.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH = /^[a-f0-9]{64}$/;
 export const ALLOWED_TYPES = new Set([
@@ -89,6 +90,8 @@ export function validateEnvelope(envelope, otlpAttributes = {}, limits = {}) {
   if (otlpAttributes['sdar.record.hash'] !== envelope.recordHash) return fail('OTLP_RECORD_HASH_MISMATCH');
   if (otlpAttributes['telemetry.contract.version'] && otlpAttributes['telemetry.contract.version'] !== envelope.schemaVersion) return fail('OTLP_SCHEMA_VERSION_MISMATCH');
   if (calculateProviderOpsRecordHash(envelope) !== envelope.recordHash) return fail('RECORD_HASH_MISMATCH');
+  const runtimeSemantic = validateSmppRuntimeSemantic(envelope);
+  if (!runtimeSemantic.ok) return fail(runtimeSemantic.code, runtimeSemantic.message);
   try { scan(envelope,{nodes:0,maxDepth:limits.maxDepth??12,maxNodes:limits.maxNodes??5000,maxStringLength:limits.maxStringLength??16384,maxArrayLength:limits.maxArrayLength??1000,maxObjectProperties:limits.maxObjectProperties??500}); }
   catch(error){ return fail(error.code??'PAYLOAD_REJECTED',error.message); }
   if (Buffer.byteLength(JSON.stringify(envelope)) > (limits.maxEventBytes??1024*1024)) return fail('EVENT_TOO_LARGE');

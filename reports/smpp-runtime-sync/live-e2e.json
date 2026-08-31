@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "sdar.smpp-telemetry-runtime-sync-e2e/v1",
+  "producer": {
+    "repositoryCommit": "1e67e6e421d70a3cbce2d41bf5007e99463712fe",
+    "qualificationTaskId": "4f5e2662-5ac7-440e-87ef-21d7f8231b96",
+    "qualificationRecoveryTaskId": "780a8ce7-1d03-4c0a-aefa-f873f5290455",
+    "qualificationExecutionId": "execution-df080745-28f5-41ca-9a69-d1ae48de21a3",
+    "recordCount": 9,
+    "families": [
+      "business_terminal",
+      "dispatch.uncertainty",
+      "mission",
+      "mission_relation",
+      "position",
+      "task.reconciliation"
+    ],
+    "initialHttpStatus": 200,
+    "duplicateHttpStatus": 200,
+    "intentionalConflictHttpStatusViaCollector": 500
+  },
+  "path": [
+    "Producer committed PostgreSQL ProviderOps delivery",
+    "OTLP/HTTP",
+    "official Collector gateway",
+    "Processor validation and atomic WAL",
+    "Normalizer v4",
+    "standalone ClickHouse projection",
+    "serving query"
+  ],
+  "finalCleanSnapshot": {
+    "capturedAt": "2026-08-31T06:12:53Z",
+    "wal": {"entries": 229, "pending": 0, "writeFailed": false},
+    "layers": {"landing": 228, "normalized": 228, "core": 228, "relations": 3, "conflicts": 1, "rejected": 0},
+    "qualificationRecords": 9,
+    "liveUgvRecords": 219,
+    "liveUgvRecordTypes": {"provider.resource.state": 155, "provider.resource.metric": 64},
+    "relations": [
+      {"type": "task_execution_binding", "bindingSource": "smpp_runtime_committed_binding", "confidence": "authoritative", "count": 1},
+      {"type": "task_execution_binding", "bindingSource": "smpp_runtime_reconciliation_found", "confidence": "authoritative", "count": 1},
+      {"type": "execution_mission_binding", "bindingSource": "provider_authoritative_mission_identity", "confidence": "authoritative", "count": 1}
+    ]
+  },
+  "semanticReadiness": [
+    {"case": "dispatch uncertainty", "status": "not_ready", "reason": "SMPP_DISPATCH_UNCERTAIN"},
+    {"case": "reconciliation not_found", "status": "not_ready", "reason": "SMPP_RECONCILIATION_NOT_FOUND"},
+    {"case": "reconciliation transient_unavailable", "status": "not_ready", "reason": "SMPP_RECONCILIATION_TRANSIENT_UNAVAILABLE"},
+    {"case": "reconciliation conflict", "status": "conflict", "reason": "SMPP_RECONCILIATION_CONFLICT"},
+    {"case": "reconciliation found", "status": "ready", "reason": null},
+    {"case": "business terminal", "status": "ready", "reason": null},
+    {"case": "provider evidence", "status": "ready", "reason": null},
+    {"case": "mission exact", "status": "ready", "reason": null}
+  ],
+  "businessTerminal": {
+    "mcpTaskStatus": "completed",
+    "transportStatus": "completed",
+    "providerExecutionStatus": "completed",
+    "businessStatus": "succeeded",
+    "evaluationVerdictProjected": false
+  },
+  "physicalTimeEvidence": {
+    "positionObservedAt": "2026-08-31T06:10:34.696Z",
+    "positionOccurredAt": "2026-08-31T06:10:34.696Z",
+    "missionObservedAt": "2026-08-31T06:10:34.697Z",
+    "missionOccurredAt": "2026-08-31T06:10:34.697Z",
+    "receivedAndNormalizedRemainDistinct": true
+  },
+  "outageReplay": {
+    "method": "pause only the isolated ClickHouse qualification container",
+    "pendingDuringOutage": 34,
+    "pendingAfterRecovery": 0,
+    "checkpointAdvancedAfterRecovery": true,
+    "producerBusinessStateMutatedByTelemetryOutage": false
+  },
+  "liveProducer": {
+    "providerId": "isr.vehicle.ugv.ugv1",
+    "instanceId": "smpp-real-integration-1",
+    "health": "ready",
+    "collectorHostGatewayReachability": "fixed and verified",
+    "controlInvokedByTelemetryTask": false
+  },
+  "physicalNavigationObservation": {
+    "userAuthorized": true,
+    "sdarDispatchAttempted": true,
+    "runtimeOutcome": "UGV_EXECUTION_MODE_UNSUPPORTED",
+    "remoteTaskCreated": false,
+    "vehicleMoved": false,
+    "deviceMissionCreated": false,
+    "telemetryAuthoritativeRelationCreated": false,
+    "interpretation": "correct fail-closed negative case; no Task or Mission identity may be synthesized",
+    "followUp": "superseded by a newer SDAR-session task package request before a governed real-mode retry"
+  },
+  "acknowledgementBoundary": {
+    "producerDeliveredIsSufficientProofOfProjection": false,
+    "collectorAckIsSufficientProofOfProjection": false,
+    "qualificationCriterion": "Processor WAL classification plus target checkpoint plus ClickHouse query",
+    "observedCollector409At": "2026-08-31T05:57:40.038Z",
+    "observedIssue": "Producer durable state may report DELIVERED before asynchronous Collector-to-Processor acceptance is proven"
+  },
+  "result": "pass"
+}
