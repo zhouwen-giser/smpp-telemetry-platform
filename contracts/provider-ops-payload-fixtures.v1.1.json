@@ -3,7 +3,7 @@
   "valid": [
     {"recordType":"provider.task.lifecycle","payload":{"currentState":"completed","providerSubstate":"idle","providerRevision":"7","observedAt":"2026-08-18T01:02:03.004Z","terminalStatus":"completed"}},
     {"recordType":"provider.command.lifecycle","payload":{"externalCommandId":"cmd-1","currentState":"acknowledged","providerRevision":"8"}},
-    {"recordType":"provider.scheduler.decision","payload":{"reasonCode":"capacity","providerRevision":"9"}},
+    {"recordType":"provider.scheduler.decision","payload":{"reasonCode":null,"providerRevision":"9"}},
     {"recordType":"provider.recovery.lifecycle","payload":{"currentState":"recovering","reasonCode":"transport_reset"}},
     {"recordType":"provider.ttl.lifecycle","payload":{"currentState":"expired","terminalStatus":"expired"}},
     {"recordType":"provider.resource.state","payload":{"state":"available","observedAt":"2026-08-18T01:02:03.004Z"}},

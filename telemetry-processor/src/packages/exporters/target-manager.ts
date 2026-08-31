@@ -4,6 +4,42 @@ import { SmppProviderOpsNormalizerV1 } from '../normalization/smpp-provider-ops-
 import { CoreProjectionV1 } from '../projection/core-projection.js';
 import {SdarSharedWarehouseProjectionV1,SdarWarehouseSchemaPreflight} from '../projection/sdar-shared-warehouse-projection.js';
 
+const PARTITION_TIME_FIELDS=Object.freeze({
+  'telemetry_landing.smpp_provider_ops_v1':'occurred_at',
+  'telemetry_landing.smpp_provider_ops_conflict_v1':'received_at',
+  'telemetry_landing.smpp_provider_ops_rejected_summary_v1':'received_at',
+  'telemetry_normalized.canonical_fact_v1':'occurred_at',
+  'telemetry_core.entity_relation_fact':'valid_from'
+});
+const HASH_PARTITIONED_TABLES=new Set([
+  'sdar_core.external_provider_fact',
+  'sdar_core.external_entity_relation_fact'
+]);
+const MAX_HASH_PARTITION_ROWS_PER_INSERT=100;
+
+function partitionTimeField(table){
+  return PARTITION_TIME_FIELDS[table]??(table.startsWith('telemetry_core.')?'occurred_at':null);
+}
+
+export function partitionRowsForInsert(table,rows){
+  if(HASH_PARTITIONED_TABLES.has(table)){
+    const blocks=[];
+    for(let index=0;index<rows.length;index+=MAX_HASH_PARTITION_ROWS_PER_INSERT)blocks.push(rows.slice(index,index+MAX_HASH_PARTITION_ROWS_PER_INSERT));
+    return blocks;
+  }
+  const field=partitionTimeField(table);
+  if(field===null||rows.length<2)return [rows];
+  const partitions=new Map();
+  for(const row of rows){
+    const value=row[field];
+    if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T/.test(value)||!Number.isFinite(Date.parse(value)))throw new Error(`PROJECTION_PARTITION_KEY_INVALID:${table}`);
+    const key=value.slice(0,7);
+    if(!partitions.has(key))partitions.set(key,[]);
+    partitions.get(key).push(row);
+  }
+  return [...partitions.values()];
+}
+
 export async function loadProjectionTargets(file) {
   const data=JSON.parse(await readFile(file,'utf8'));
   if(!Array.isArray(data.targets)) throw new Error('PROJECTION_TARGETS_INVALID');
@@ -70,7 +106,10 @@ export class TargetWorker {
           }
         }
       }
-      for(const [table,rows] of tables){const targetTable=this.target.targetType==='sdar_shared_warehouse'?table:(this.target.tableMap?.[table]??table);await this.client.insert(targetTable,rows);}
+      for(const [table,rows] of tables){
+        const targetTable=this.target.targetType==='sdar_shared_warehouse'?table:(this.target.tableMap?.[table]??table);
+        for(const partitionRows of partitionRowsForInsert(table,rows))await this.client.insert(targetTable,partitionRows);
+      }
       await this.wal.commit(this.checkpointId,entries.at(-1));
       this.lastError=null;
       this.metrics.inc('projection_target_batches_total',{target:this.target.targetId});

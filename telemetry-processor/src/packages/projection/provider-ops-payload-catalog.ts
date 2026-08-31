@@ -17,7 +17,7 @@ function validateValue(type,value){
   if(type==='nullable_string')return value===null||(typeof value==='string'&&value.length>0&&value.length<=512);
   if(type==='boolean')return typeof value==='boolean';
   if(type==='integer')return Number.isSafeInteger(value)&&value>=0;
-  if(type==='string_array')return Array.isArray(value)&&value.length<=256&&value.every((item)=>typeof item==='string'&&item.length>0&&item.length<=512);
+  if(type==='string_array')return Array.isArray(value)&&value.every((item)=>typeof item==='string'&&item.length>0&&item.length<=512);
   if(type==='utc')return validUtc(value);
   if(type==='percent')return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
   return false;
