@@ -51,11 +51,11 @@ services:
       SOURCE_MAPPINGS_FILE: /app/config/source-mappings.json
       PROJECTION_TARGETS_FILE: /app/config/projection-targets.json
       EXPORT_INTERVAL_MS: "500"
-    secrets: [clickhouse_password]
+    secrets: [clickhouse_password, sdar_warehouse_password]
     volumes:
       - processor-wal:/var/lib/smpp-telemetry/wal
       - ${UGV_DEBUG_STATE_ROOT:?}/source-mappings.json:/app/config/source-mappings.json:ro
-      - ./config/projection-targets.example.json:/app/config/projection-targets.json:ro
+      - ${UGV_DEBUG_STATE_ROOT:?}/projection-targets.json:/app/config/projection-targets.json:ro
     ports: ["0.0.0.0:8443:8443"]
     healthcheck:
       test:
@@ -114,8 +114,14 @@ services:
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
     secrets: [clickhouse_password]
     ports: ["0.0.0.0:8088:8088"]
+    networks:
+      default:
+      observability:
+        aliases: [smpp-telemetry-query]
 
 secrets:
+  sdar_warehouse_password:
+    file: ${UGV_DEBUG_STATE_ROOT:?}/sdar-telemetry/warehouse-password
   clickhouse_password:
     file: ${UGV_DEBUG_STATE_ROOT:?}/clickhouse-password
 volumes:
