@@ -4,6 +4,11 @@ import {
   diagnosticQuery,
   DiagnosticQueryError,
 } from "./observability-query.js";
+import {
+  currentExecutionMissionSql,
+  currentMissionStateSql,
+  currentTaskExecutionSql,
+} from "./current-authority.js";
 
 function json(res: ServerResponse, status: number, value: unknown) {
   const body = Buffer.from(JSON.stringify(value));
@@ -115,6 +120,39 @@ export function createQueryServer({
         });
       }
       let match;
+      if (
+        req.method === "GET" &&
+        (match = url.pathname.match(
+          /^\/api\/v1\/tasks\/(.+)\/current-authority$/,
+        ))
+      ) {
+        const taskId = decode(match[1]);
+        const externalExecutionId =
+          url.searchParams.get("externalExecutionId") ?? "";
+        const [taskExecution, missionState] = await Promise.all([
+          client.queryJson(
+            currentTaskExecutionSql(taskId, externalExecutionId),
+          ),
+          client.queryJson(
+            currentMissionStateSql(taskId, externalExecutionId),
+          ),
+        ]);
+        const latestState = missionState.data[0];
+        const missionSql = currentExecutionMissionSql(latestState);
+        const executionMission =
+          missionSql === null
+            ? { data: [] }
+            : await client.queryJson(missionSql);
+        return json(res, 200, {
+          taskExecution: taskExecution.data,
+          missionAuthorityState: latestState ?? null,
+          executionMission: executionMission.data,
+          currentTaskExecutionCount: taskExecution.data.length,
+          currentExecutionMissionCount: executionMission.data.length,
+          selection: "provider_observed_at_then_source_record_id_v1",
+          auditHistoryPreserved: true,
+        });
+      }
       if (
         req.method === "GET" &&
         (match = url.pathname.match(/^\/api\/v1\/tasks\/(.+)\/timeline$/))
