@@ -294,8 +294,7 @@ export function restoreSmppRuntimeTransportSemantics(envelope) {
     nullIfTransportEmpty('simulationId');
     if (payload.status !== 'found') nullIfTransportEmpty('externalExecutionId');
   }
-  if (candidate.recordType === 'provider.task.lifecycle' &&
-      ['transportStatus','mcpTaskStatus','businessStatus','providerExecutionStatus'].some((key) => key in payload)) {
+  if (candidate.recordType === 'provider.task.lifecycle') {
     for (const key of ['previousState','previousSubstate','currentSubstate','reasonCode','resultClass']) {
       nullIfTransportEmpty(key);
     }

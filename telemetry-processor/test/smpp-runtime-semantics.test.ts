@@ -240,3 +240,20 @@ test('OTLP null loss is restored only when the Producer record hash proves the e
   forged.payload.businessStatus='failed';
   assert.equal(restoreSmppRuntimeTransportSemantics(forged),forged);
 });
+
+test('OTLP null loss is restored for ordinary task lifecycle facts without four-axis fields',()=>{
+  const original=semanticEnvelope({
+    eventType:'task.started',
+    attributes:{source:'committed_postgres',eventType:'task.started'},
+    payload:{
+      previousState:'WAITING_START_CONFIRMATION',currentState:'TERMINAL_FAILED',
+      previousSubstate:'accepted',currentSubstate:null,reasonCode:'START_CONFIRMED',
+      resultClass:'technical_failure',terminal:true,status:'failed',observationRevision:17,
+      adapterRevision:17
+    }
+  });
+  const transported=structuredClone(original);
+  transported.payload.currentSubstate='';
+  assert.notEqual(calculateProviderOpsRecordHash(transported),original.recordHash);
+  assert.deepEqual(restoreSmppRuntimeTransportSemantics(transported),original);
+});
