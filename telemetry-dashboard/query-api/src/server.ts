@@ -5,7 +5,7 @@ import {
   DiagnosticQueryError,
 } from "./observability-query.js";
 import {
-  currentExecutionMissionSql,
+  convergeCurrentExecutionMission,
   currentMissionStateSql,
   currentTaskExecutionSql,
 } from "./current-authority.js";
@@ -138,18 +138,18 @@ export function createQueryServer({
           ),
         ]);
         const latestState = missionState.data[0];
-        const missionSql = currentExecutionMissionSql(latestState);
-        const executionMission =
-          missionSql === null
-            ? { data: [] }
-            : await client.queryJson(missionSql);
+        const executionMission = convergeCurrentExecutionMission(
+          latestState,
+          taskExecution.data,
+        );
         return json(res, 200, {
           taskExecution: taskExecution.data,
           missionAuthorityState: latestState ?? null,
-          executionMission: executionMission.data,
+          executionMission,
           currentTaskExecutionCount: taskExecution.data.length,
-          currentExecutionMissionCount: executionMission.data.length,
+          currentExecutionMissionCount: executionMission.length,
           selection: "provider_observed_at_then_source_record_id_v1",
+          convergence: "selected_fact_dependency_join_v2",
           auditHistoryPreserved: true,
         });
       }
