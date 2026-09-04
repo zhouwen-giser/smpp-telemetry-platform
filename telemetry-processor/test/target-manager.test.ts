@@ -25,3 +25,47 @@ test('sdar_shared_warehouse selects the typed adapter and keeps an independent c
 test('sdar target restart replays its pending WAL without moving standalone twice',async()=>{const directory=await mkdtemp(join(tmpdir(),'sdar-restart-'));let wal=new WalStore({directory});await wal.initialize();await wal.append({kind:'accepted',sourceSystem:'smpp',receivedAt:'2026-08-18T01:02:04Z',trustedContext:{deploymentId:'development',collectorId:'c1'},mapping,envelope:envelope()});const standalone=new Fake(),failedSdar=new Fake(true);const targets=[{targetId:'standalone-smpp',targetType:'standalone',enabled:true,required:true,acceptAllMappings:true,writeLayers:['landing'],connection:{}},{targetId:'sdar-warehouse-shadow',targetType:'sdar_shared_warehouse',enabled:true,required:false,acceptAllMappings:true,writeLayers:['core','relation'],connection:{},tableMap:{}}];let manager=new TargetManager({targets,wal,metrics:new Metrics(),clientFactory:(target)=>target.targetId==='standalone-smpp'?standalone:failedSdar});manager.targets[1].schemaPreflight={assert:async()=>true};await manager.initialize();await manager.flush();assert.equal(manager.statuses()[0].pending,0);assert.equal(manager.statuses()[1].pending,1);wal=new WalStore({directory});await wal.initialize();const recoveredSdar=new Fake();manager=new TargetManager({targets,wal,metrics:new Metrics(),clientFactory:(target)=>target.targetId==='standalone-smpp'?standalone:recoveredSdar});manager.targets[1].schemaPreflight={assert:async()=>true};await manager.initialize();await manager.flush();assert.equal(manager.statuses()[0].pending,0);assert.equal(manager.statuses()[1].pending,0);assert.equal(standalone.rows.length,1);assert.equal(recoveredSdar.rows[0][0],'sdar_core.external_provider_fact');});
 
 test('optional SDAR schema preflight outage does not prevent required standalone startup',async()=>{const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'sdar-preflight-outage-'))});await wal.initialize();const required=new Fake(),optional=new Fake(),targets=[{targetId:'standalone-smpp',targetType:'standalone',enabled:true,required:true,acceptAllMappings:true,writeLayers:['landing'],connection:{}},{targetId:'sdar-warehouse-shadow',targetType:'sdar_shared_warehouse',enabled:true,required:false,acceptAllMappings:true,writeLayers:['core'],connection:{},tableMap:{}}],manager=new TargetManager({targets,wal,metrics:new Metrics(),clientFactory:(target)=>target.targetId==='standalone-smpp'?required:optional});manager.targets[1].schemaPreflight={assert:async()=>{throw new Error('SMPP_SHADOW_TARGET_UNAVAILABLE');}};await manager.initialize();assert.equal(manager.statuses()[0].lastError,null);assert.equal(manager.statuses()[1].lastError,'SMPP_SHADOW_TARGET_UNAVAILABLE');});
+
+test('projection rows carry processor time across targets with opposite server clock drift',async()=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'processor-projection-time-'))});
+  await wal.initialize();
+  await wal.append({kind:'accepted',sourceSystem:'smpp',receivedAt:'2026-09-04T07:56:43.500Z',trustedContext:{deploymentId:'development',collectorId:'c1'},mapping,envelope:envelope()});
+  class DriftedTarget extends Fake{
+    constructor(serverNow){super();this.serverNow=serverNow;}
+    async insert(table,rows){this.rows.push([table,rows.map(row=>({...row,projected_at:row.projected_at??this.serverNow}))]);}
+  }
+  const clients={
+    'standalone-smpp':new DriftedTarget('2026-09-04T07:58:13.750Z'),
+    'sdar-warehouse-shadow':new DriftedTarget('2026-09-04T07:55:13.750Z')
+  };
+  const targets=[
+    {targetId:'standalone-smpp',targetType:'standalone_smpp_clickhouse',enabled:true,required:true,acceptAllMappings:true,writeLayers:['core','relation'],connection:{}},
+    {targetId:'sdar-warehouse-shadow',targetType:'sdar_shared_warehouse',enabled:true,required:false,acceptAllMappings:true,writeLayers:['core','relation'],connection:{},tableMap:{}}
+  ];
+  const processorTime='2026-09-04T07:56:43.750Z';
+  const manager=new TargetManager({targets,wal,metrics:new Metrics(),clock:{now:()=>processorTime},clientFactory:target=>clients[target.targetId]});
+  manager.targets[1].schemaPreflight={assert:async()=>true};
+  await manager.initialize();
+  await manager.flush();
+  for(const client of Object.values(clients)){
+    const rows=client.rows.flatMap(([,batch])=>batch);
+    assert.ok(rows.length>0);
+    assert.ok(rows.every(row=>row.projected_at===processorTime));
+  }
+  assert.deepEqual(manager.statuses().map(status=>status.pending),[0,0]);
+  assert.deepEqual(manager.statuses().map(status=>[status.checkpoint.segment,status.checkpoint.offsetEnd]),[[1,manager.statuses()[0].checkpoint.offsetEnd],[1,manager.statuses()[0].checkpoint.offsetEnd]]);
+});
+
+test('projection fails closed when processor projection time precedes receiver time',async()=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'processor-clock-regression-'))});
+  await wal.initialize();
+  await wal.append({kind:'accepted',sourceSystem:'smpp',receivedAt:'2026-09-04T07:56:43.500Z',trustedContext:{deploymentId:'development',collectorId:'c1'},mapping,envelope:envelope()});
+  const client=new Fake();
+  const target={targetId:'standalone-smpp',targetType:'standalone_smpp_clickhouse',enabled:true,required:true,acceptAllMappings:true,writeLayers:['core'],connection:{}};
+  const manager=new TargetManager({targets:[target],wal,metrics:new Metrics(),clock:{now:()=> '2026-09-04T07:56:43.499Z'},clientFactory:()=>client});
+  await manager.initialize();
+  await manager.flush();
+  assert.equal(manager.statuses()[0].lastError,'PROCESSOR_PROJECTION_CLOCK_BEFORE_RECEIVE');
+  assert.equal(manager.statuses()[0].pending,1);
+  assert.equal(client.rows.length,0);
+});

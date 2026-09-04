@@ -46,11 +46,22 @@ export async function loadProjectionTargets(file) {
   return data.targets;
 }
 
+function processorProjectedAt(value,entries){
+  if(typeof value!=='string'||!value.endsWith('Z')||!Number.isFinite(Date.parse(value)))throw new Error('PROCESSOR_PROJECTION_TIME_INVALID');
+  const projectedTime=Date.parse(value);
+  for(const entry of entries){
+    const receivedAt=entry.record?.receivedAt;
+    if(typeof receivedAt!=='string'||!Number.isFinite(Date.parse(receivedAt)))throw new Error('PROCESSOR_RECEIVED_TIME_INVALID');
+    if(projectedTime<Date.parse(receivedAt))throw new Error('PROCESSOR_PROJECTION_CLOCK_BEFORE_RECEIVE');
+  }
+  return value;
+}
+
 export class TargetWorker {
-  constructor({target,wal,metrics,client,normalizer=new SmppProviderOpsNormalizerV1(),projection,batchSize=200,schemaPreflight=new SdarWarehouseSchemaPreflight()}) {
+  constructor({target,wal,metrics,client,normalizer=new SmppProviderOpsNormalizerV1(),projection,batchSize=200,schemaPreflight=new SdarWarehouseSchemaPreflight(),clock={now:()=>new Date().toISOString()}}) {
     this.target=target;this.wal=wal;this.metrics=metrics;this.client=client;
     if(target.targetType==='sdar_shared_warehouse'&&Object.keys(target.tableMap??{}).length)throw new Error('SMPP_TARGET_TABLE_MAP_FORBIDDEN');
-    this.normalizer=normalizer;this.projection=projection??(target.targetType==='sdar_shared_warehouse'?new SdarSharedWarehouseProjectionV1():new CoreProjectionV1());this.schemaPreflight=schemaPreflight;this.batchSize=batchSize;
+    this.normalizer=normalizer;this.projection=projection??(target.targetType==='sdar_shared_warehouse'?new SdarSharedWarehouseProjectionV1():new CoreProjectionV1());this.schemaPreflight=schemaPreflight;this.batchSize=batchSize;this.clock=clock;
     this.running=false;this.initialized=false;this.lastError=null;this.checkpointId=`target:${target.targetId}`;
   }
 
@@ -63,6 +74,7 @@ export class TargetWorker {
       if(!this.initialized)await this.initialize();
       const entries=this.wal.pending(this.checkpointId,this.batchSize);
       if(!entries.length){this.lastError=null;return;}
+      const projectedAt=processorProjectedAt(this.clock.now(),entries);
       const tables=new Map();
       const push=(table,row)=>{if(!tables.has(table))tables.set(table,[]);tables.get(table).push(row);};
       for(const entry of entries){
@@ -101,7 +113,7 @@ export class TargetWorker {
           if(this.target.writeLayers.includes('core')||this.target.writeLayers.includes('relation')){
             for(const out of this.projection.project(fact)){
               const isRelation=out.table.endsWith('entity_relation_fact');
-              if((isRelation&&this.target.writeLayers.includes('relation'))||(!isRelation&&this.target.writeLayers.includes('core')))push(out.table,out.row);
+              if((isRelation&&this.target.writeLayers.includes('relation'))||(!isRelation&&this.target.writeLayers.includes('core')))push(out.table,{...out.row,projected_at:projectedAt});
             }
           }
         }
@@ -124,8 +136,8 @@ export class TargetWorker {
 }
 
 export class TargetManager {
-  constructor({targets,wal,metrics,batchSize=200,clientFactory}){
-    this.targets=targets.filter(target=>target.enabled).map(target=>new TargetWorker({target,wal,metrics,batchSize,client:clientFactory?clientFactory(target):new ClickHouseClient(target.connection)}));
+  constructor({targets,wal,metrics,batchSize=200,clientFactory,clock={now:()=>new Date().toISOString()}}){
+    this.targets=targets.filter(target=>target.enabled).map(target=>new TargetWorker({target,wal,metrics,batchSize,client:clientFactory?clientFactory(target):new ClickHouseClient(target.connection),clock}));
     this.timer=null;
   }
   async initialize(){for(const target of this.targets){try{await target.initialize();}catch(error){target.lastError=error;target.metrics.inc('projection_target_failures_total',{target:target.target.targetId});if(target.target.required)throw error;}}}
