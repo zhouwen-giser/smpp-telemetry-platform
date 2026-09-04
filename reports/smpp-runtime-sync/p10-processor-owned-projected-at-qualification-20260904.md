@@ -56,6 +56,16 @@ Read-only shared query over rows with `projected_at >= 2026-09-04T08:19:13.022Z`
 
 These rows were natural resource state/metric traffic. They advanced both target checkpoints and the global protected-query watermark without manufacturing freshness. There was no new task-scoped Provider fact during this qualification window; therefore the next Case must still satisfy its own strict scoped-freshness gate after its first natural Provider event.
 
+## Probe stability addendum
+
+One host-side readiness probe immediately after the qualification commit received a transient connection refusal. Container inspection at that time still showed `running`, the original started-at value, restart count `0`, and no error log. An independent read at `2026-09-04T08:25:25Z` and the following three consecutive reads all returned HTTP 200 `ready`; this is classified as a probe transient, not a Processor restart or rollback condition:
+
+- `2026-09-04T08:26:51.981Z`: both checkpoints `5/33294490`, both pending `0`, both `lastError=null`.
+- `2026-09-04T08:26:54.223Z`: both checkpoints `5/33303313`, both pending `0`, both `lastError=null`.
+- `2026-09-04T08:26:56.535Z`: both checkpoints `5/33306287`, both pending `0`, both `lastError=null`.
+
+Every sample reported WAL `pendingWrites=0`, `writeFailed=false`, `requiredTargets=true`; the increasing equal offsets also prove continuing natural ingestion and dual-target convergence.
+
 ## Immutable r4 boundary
 
 The historical rows for Task `7ba6c300-84e0-4343-883a-792906544b63`, Execution `vehicle:ugv1:chassis:b02f3eca-7aaf-41dd-b503-18b102364b32`, and Mission `4947` were not replayed or rewritten. In particular, terminal source record `fa737822-3d9e-5fbc-b475-ce16c3ea4e02` remains:
