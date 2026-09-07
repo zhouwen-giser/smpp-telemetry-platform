@@ -19,7 +19,6 @@ services:
     secrets: [clickhouse_password]
     volumes:
       - clickhouse-data:/var/lib/clickhouse
-      - ./telemetry-schema/migrations:/docker-entrypoint-initdb.d:ro
     ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${CLICKHOUSE_HTTP_PORT:-8123}:8123", "${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${CLICKHOUSE_NATIVE_PORT:-9000}:9000"]
     healthcheck:
       test:
@@ -30,6 +29,8 @@ services:
       retries: 30
 
   telemetry-processor:
+    entrypoint: ["/bin/sh", "/run/telemetry/wal-reader-entrypoint.sh"]
+    command: ["node", "dist/telemetry-processor/src/apps/index.js"]
     build:
       context: .
       dockerfile: telemetry-processor/Dockerfile
@@ -44,7 +45,14 @@ services:
       PROCESSOR_ADMIN_API_KEY_FILE: /run/secrets/processor_admin_key
       PROCESSOR_REQUIRE_COLLECTOR_ID: "true"
       PROCESSOR_ALLOWED_COLLECTOR_IDS: ${COLLECTOR_ID:-smpp-gateway-1}
+      WAL_MIN_READER_VERSION: "2"
       WAL_DIR: /var/lib/smpp-telemetry/wal
+      WAL_MIN_FREE_BYTES: ${WAL_MIN_FREE_BYTES:-67108864}
+      WAL_CACHE_MAX_BYTES: ${WAL_CACHE_MAX_BYTES:-8388608}
+      WAL_ARCHIVE_DIR: ${WAL_ARCHIVE_DIR:-/var/lib/smpp-telemetry/wal/archive}
+      WAL_GC_ENABLED: ${WAL_GC_ENABLED:-false}
+      WAL_MAINTENANCE_INTERVAL_MS: ${WAL_MAINTENANCE_INTERVAL_MS:-60000}
+      REPLAY_TARGETS_FILE: ${REPLAY_TARGETS_FILE:-}
       WAL_MAX_PENDING_WRITES: ${WAL_MAX_PENDING_WRITES:-1024}
       PROCESSOR_SHUTDOWN_TIMEOUT_MS: ${PROCESSOR_SHUTDOWN_TIMEOUT_MS:-10000}
       SOURCE_MAPPINGS_FILE: /app/config/source-mappings.json
@@ -53,11 +61,13 @@ services:
     secrets: [clickhouse_password, processor_admin_key]
     volumes:
       - processor-wal:/var/lib/smpp-telemetry/wal
+      - ./deploy/wal-reader-guard.mjs:/run/telemetry/wal-reader-guard.mjs:ro
+      - ./deploy/wal-reader-entrypoint.sh:/run/telemetry/wal-reader-entrypoint.sh:ro
       - ./config/generated/source-mappings.json:/app/config/source-mappings.json:ro
       - ./config/projection-targets.example.json:/app/config/projection-targets.json:ro
     expose: ["8443"]
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8443/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8443/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -73,12 +83,25 @@ services:
       clickhouse: { condition: service_healthy }
     command: ["node", "dist/telemetry-schema/tools/migrate.js"]
     environment:
+      MIGRATION_LOCK_FILE: /var/lib/smpp-telemetry/migrations/migration.sqlite
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
     secrets: [clickhouse_password]
+    volumes: ["migration-state:/var/lib/smpp-telemetry/migrations"]
+
+  collector-storage-init:
+    build:
+      context: .
+      dockerfile: telemetry-processor/Dockerfile
+    user: "0:0"
+    restart: "no"
+    volumes: ["collector-queue:/var/lib/otelcol/storage"]
+    command: ["chown", "${TELEMETRY_SECRET_UID:-1000}:${TELEMETRY_SECRET_GID:-1000}", "/var/lib/otelcol/storage"]
 
   otel-collector:
+    user: "${TELEMETRY_SECRET_UID:-1000}:${TELEMETRY_SECRET_GID:-1000}"
+    secrets: [clickhouse_password]
     image: otel/opentelemetry-collector-contrib:0.157.0
     restart: unless-stopped
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
@@ -93,7 +116,9 @@ services:
       SMPP_METRICS_SCRAPE_INTERVAL: ${SMPP_METRICS_SCRAPE_INTERVAL:-15s}
     depends_on:
       telemetry-processor: { condition: service_healthy }
+      collector-storage-init: { condition: service_completed_successfully }
     volumes:
+      - collector-queue:/var/lib/otelcol/storage
       - ./telemetry-collector/config/gateway.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${OTLP_GRPC_PORT:-4317}:4317", "${OTLP_HTTP_BIND_ADDRESS:-0.0.0.0}:${OTLP_HTTP_PORT:-4318}:4318", "127.0.0.1:13133:13133", "127.0.0.1:8888:8888", "127.0.0.1:9464:9464"]
     healthcheck:
@@ -114,11 +139,22 @@ services:
     environment:
       QUERY_API_HOST: 0.0.0.0
       QUERY_API_PORT: 8088
+      AUTHORITY_ENABLED: "false"
+      QUERY_SNAPSHOTS_ENABLED: ${QUERY_SNAPSHOTS_ENABLED:-false}
+      QUERY_READER_REGISTRY_FILE: ${QUERY_READER_REGISTRY_FILE:-}
+      QUERY_SNAPSHOT_TARGET_ID: ${QUERY_SNAPSHOT_TARGET_ID:-standalone-smpp}
+      QUERY_READINESS_TIMEOUT_MS: ${QUERY_READINESS_TIMEOUT_MS:-2000}
+      QUERY_READINESS_CACHE_MS: ${QUERY_READINESS_CACHE_MS:-1000}
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
     secrets: [clickhouse_password]
     ports: ["${TELEMETRY_BIND_ADDRESS:-127.0.0.1}:${QUERY_API_PORT:-8088}:8088"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const fs=require('fs');const key=process.env.QUERY_API_KEY_FILE?fs.readFileSync(process.env.QUERY_API_KEY_FILE,'utf8').trim():process.env.QUERY_API_KEY;fetch('http://127.0.0.1:8088/health/ready',{headers:key?{authorization:'Bearer '+key}:{}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   grafana:
     image: grafana/grafana:12.1.0
@@ -126,15 +162,21 @@ services:
     depends_on:
       telemetry-migrate: { condition: service_completed_successfully }
     environment:
-      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      ALERT_WAL_BYTES: ${ALERT_WAL_BYTES:-912680550}
+      ALERT_STATE_BYTES: ${ALERT_STATE_BYTES:-1073741824}
+      ALERT_ARCHIVE_BYTES: ${ALERT_ARCHIVE_BYTES:-10737418240}
+      ALERT_DLQ_BYTES: ${ALERT_DLQ_BYTES:-268435456}
+      ALERT_PENDING_AGE_MS: ${ALERT_PENDING_AGE_MS:-300000}
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource 4.20.0
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
     entrypoint:
       - /bin/sh
       - -euc
-      - 'export CLICKHOUSE_PASSWORD="$$(cat /run/secrets/clickhouse_password)"; exec /run.sh'
+      - 'export CLICKHOUSE_PASSWORD="$$(cat /run/secrets/clickhouse_password)"; exec /bin/sh /etc/grafana/telemetry-start.sh'
     secrets: [clickhouse_password]
     volumes:
+      - ./telemetry-dashboard/grafana/start.sh:/etc/grafana/telemetry-start.sh:ro
       - ./telemetry-dashboard/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./telemetry-dashboard/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
@@ -146,6 +188,8 @@ secrets:
   processor_admin_key:
     file: ./secrets/processor_admin_key.txt
 volumes:
+  migration-state:
   clickhouse-data:
   processor-wal:
   grafana-data:
+  collector-queue:

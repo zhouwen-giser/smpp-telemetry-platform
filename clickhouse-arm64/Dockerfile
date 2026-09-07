@@ -38,12 +38,14 @@ RUN apt-get update \
 COPY clickhouse-arm64/vendor/clickhouse-25.3.14.14-complete-source.tar.zst \
      clickhouse-arm64/vendor/clickhouse-25.3.14.14-complete-source.tar.zst.sha256 \
      /tmp/clickhouse-source/
+COPY clickhouse-arm64/release-version.py /usr/local/bin/smpp-clickhouse-release-version.py
 
 RUN cd /tmp/clickhouse-source \
     && sha256sum --check clickhouse-25.3.14.14-complete-source.tar.zst.sha256 \
     && mkdir -p /src \
     && tar --zstd -xf clickhouse-25.3.14.14-complete-source.tar.zst -C /src \
     && test "$(cat /src/.clickhouse-source-revision)" = "${CLICKHOUSE_SOURCE_COMMIT}" \
+    && python3 /usr/local/bin/smpp-clickhouse-release-version.py prepare /src \
     && sed -i 's|^ROOT_PATH=.*$|ROOT_PATH="/src"|' \
         /src/src/Storages/System/StorageSystemLicenses.sh \
         /src/utils/list-licenses/list-licenses.sh \
@@ -86,7 +88,7 @@ RUN --mount=type=cache,id=smpp-clickhouse-25.3.14.14-arm64-build,target=/src/bui
     && cmake --build /src/build --target clickhouse-stripped --parallel "${CLICKHOUSE_BUILD_JOBS}" \
     && mkdir -p /out \
     && cp /src/build/programs/clickhouse-stripped /out/clickhouse \
-    && /out/clickhouse --version
+    && python3 /usr/local/bin/smpp-clickhouse-release-version.py verify-binary /out/clickhouse
 
 FROM debian:trixie-slim AS runtime
 

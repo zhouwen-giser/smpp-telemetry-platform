@@ -9,6 +9,11 @@ import {
   currentMissionStateSql,
   currentTaskExecutionSql,
 } from "./current-authority.js";
+import { AuthorityRequestError, authorityIdentity, requestedAuthorityScope, resolveLegacyAuthorityScope, validateAuthorityScope, type AuthorityScope } from "./scope.js";
+import { createQueryReadiness } from "./readiness.js";
+import { createPagination, type PaginationOptions } from "./pagination.js";
+import { PageRequestError } from "./cursor.js";
+import { queryProjectionProgress } from "./progress.js";
 
 function json(res: ServerResponse, status: number, value: unknown) {
   const body = Buffer.from(JSON.stringify(value));
@@ -20,73 +25,51 @@ function json(res: ServerResponse, status: number, value: unknown) {
 }
 const decode = (value: string | undefined) => decodeURIComponent(value ?? "");
 
-const EVENT_FILTERS = {
-  tenantId: "tenant_id",
-  projectId: "project_id",
-  providerId: "provider_id",
-  resourceId: "resource_id",
-  taskId: "task_id",
-  operationName: "operation_name",
-  runtimeInstanceId: "runtime_instance_id",
-  deploymentId: "deployment_id",
-  recordId: "source_record_id",
-  traceId: "trace_id",
-  externalExecutionId: "external_execution_id",
-  providerEventId: "provider_event_id",
-  recordType: "record_type",
-  eventCategory: "event_category",
-  deliveryClass: "delivery_class",
-};
-
-function eventSearchSql(searchParams: URLSearchParams) {
-  const where = [];
-  for (const [parameter, column] of Object.entries(EVENT_FILTERS)) {
-    const value = searchParams.get(parameter);
-    if (value === null) continue;
-    if (value.length === 0 || value.length > 512)
-      throw Object.assign(new Error(`INVALID_${parameter}`), {
-        statusCode: 400,
-      });
-    where.push(`${column}=${sqlString(value)}`);
-  }
-  for (const [parameter, operator] of [
-    ["from", ">="],
-    ["to", "<="],
-  ] as const) {
-    const value = searchParams.get(parameter);
-    if (value === null) continue;
-    if (Number.isNaN(Date.parse(value)))
-      throw Object.assign(new Error(`INVALID_${parameter}`), {
-        statusCode: 400,
-      });
-    where.push(
-      `occurred_at${operator}parseDateTime64BestEffort(${sqlString(value)},3)`,
-    );
-  }
-  const requestedLimit = Number(searchParams.get("limit") ?? 100);
-  if (
-    !Number.isInteger(requestedLimit) ||
-    requestedLimit < 1 ||
-    requestedLimit > 1000
-  )
-    throw Object.assign(new Error("INVALID_limit"), { statusCode: 400 });
-  const clause = where.length ? ` WHERE ${where.join(" AND ")}` : "";
-  return `SELECT * FROM telemetry_serving.provider_ops_activity${clause} ORDER BY occurred_at DESC,source_record_id DESC LIMIT ${requestedLimit}`;
-}
-
 export function createQueryServer({
   client,
+  authorityClient = client,
   apiKey = "",
+  authorityEnabled = true,
+  authorityDefaultScope,
+  readinessTimeoutMs = 2000,
+  readinessCacheMs = 1000,
+  pagination = {},
 }: {
   client: DiagnosticStore;
+  authorityClient?: DiagnosticStore;
   apiKey?: string;
+  authorityEnabled?: boolean;
+  authorityDefaultScope?: AuthorityScope;
+  readinessTimeoutMs?: number;
+  readinessCacheMs?: number;
+  pagination?: Omit<PaginationOptions, "client">;
 }) {
+  const defaultScope = authorityDefaultScope ? validateAuthorityScope(authorityDefaultScope) : undefined;
+  const readiness = createQueryReadiness({ client, authorityClient, authorityEnabled, snapshotEnabled: pagination.snapshotEnabled ?? false, snapshotReaders: Object.fromEntries(Object.entries(pagination.snapshotReaders ?? {}).filter(([id]) => id !== pagination.snapshotTargetId)), timeoutMs: readinessTimeoutMs, cacheMs: readinessCacheMs });
+  const page = createPagination({ client, ...pagination });
   return http.createServer(async (req, res) => {
     try {
       if (apiKey && req.headers.authorization !== `Bearer ${apiKey}`)
         return json(res, 401, { error: "UNAUTHORIZED" });
+      try { decodeURIComponent(req.url ?? "/"); } catch { throw new AuthorityRequestError("INVALID_URL_ENCODING"); }
       const url = new URL(req.url ?? "/", "http://query");
+      if (req.method === "GET" && url.pathname === "/health/live")
+        return json(res, 200, { status: "live" });
+      if (req.method === "GET" && ["/health", "/health/ready", "/metrics"].includes(url.pathname)) {
+        const result = await readiness();
+        if (url.pathname === "/metrics") {
+          const lines = ["# TYPE query_ready gauge", `query_ready ${Number(result.status === "ready")}`, "# TYPE query_authority_enabled gauge", `query_authority_enabled ${Number(authorityEnabled)}`, "# TYPE query_store_ready gauge", `query_store_ready{store="standalone"} ${Number(result.stores.standalone.status === "ready")}`];
+          if (result.stores.authority.status !== "disabled") lines.push(`query_store_ready{store="authority"} ${Number(result.stores.authority.status === "ready")}`);
+          if (result.stores.snapshots.status !== "disabled") lines.push(`query_store_ready{store="snapshots"} ${Number(result.stores.snapshots.status === "ready")}`);
+          for (const [targetId, state] of Object.entries(result.stores.historicalSnapshots)) lines.push(`query_store_ready{store="historical_snapshot",target_id=${JSON.stringify(targetId)}} ${Number(state.status === "ready")}`);
+          res.writeHead(200, { "content-type": "text/plain; version=0.0.4; charset=utf-8" });
+          return res.end(lines.join("\n") + "\n");
+        }
+        return json(res, result.status === "ready" ? 200 : 503, result);
+      }
       if (req.method === "GET") {
+        const paginated = await page(url);
+        if (paginated) return json(res, 200, paginated);
         try {
           const diagnostic = diagnosticQuery(url);
           if (diagnostic) {
@@ -109,16 +92,6 @@ export function createQueryServer({
           });
         }
       }
-      if (req.method === "GET" && url.pathname === "/health")
-        return json(res, 200, { status: "ok" });
-      if (req.method === "GET" && url.pathname === "/api/v1/events") {
-        const result = await client.queryJson(eventSearchSql(url.searchParams));
-        return json(res, 200, {
-          data: result.data,
-          data_watermark: result.data[0]?.ingested_at ?? null,
-          source_provenance: true,
-        });
-      }
       let match;
       if (
         req.method === "GET" &&
@@ -126,21 +99,32 @@ export function createQueryServer({
           /^\/api\/v1\/tasks\/(.+)\/current-authority$/,
         ))
       ) {
-        const taskId = decode(match[1]);
-        const externalExecutionId =
-          url.searchParams.get("externalExecutionId") ?? "";
+        if (!authorityEnabled) return json(res, 503, { error: "AUTHORITY_DISABLED", capabilities: { authority: false } });
+        const taskId = authorityIdentity(decode(match[1]), "MISSION_AUTHORITY_TASK_ID_INVALID");
+        if (url.searchParams.getAll("externalExecutionId").length !== 1)
+          throw new AuthorityRequestError("MISSION_AUTHORITY_EXECUTION_ID_INVALID");
+        const externalExecutionId = authorityIdentity(url.searchParams.get("externalExecutionId"), "MISSION_AUTHORITY_EXECUTION_ID_INVALID");
+        const suppliedScope = requestedAuthorityScope(url.searchParams, defaultScope);
+        const resolvedScope = suppliedScope ?? await resolveLegacyAuthorityScope(authorityClient, taskId, externalExecutionId);
+        if (!resolvedScope) return json(res, 200, {
+          taskExecution: [], missionAuthorityState: null, executionMission: [],
+          currentTaskExecutionCount: 0, currentExecutionMissionCount: 0, resolvedScope: null,
+          reason: "AUTHORITY_SCOPE_NOT_FOUND", selection: "provider_observed_at_then_source_record_id_scoped_v2",
+          convergence: "selected_fact_dependency_join_scoped_v3", auditHistoryPreserved: true,
+        });
         const [taskExecution, missionState] = await Promise.all([
-          client.queryJson(
-            currentTaskExecutionSql(taskId, externalExecutionId),
+          authorityClient.queryJson(
+            currentTaskExecutionSql(taskId, externalExecutionId, resolvedScope),
           ),
-          client.queryJson(
-            currentMissionStateSql(taskId, externalExecutionId),
+          authorityClient.queryJson(
+            currentMissionStateSql(taskId, externalExecutionId, resolvedScope),
           ),
         ]);
         const latestState = missionState.data[0];
         const executionMission = convergeCurrentExecutionMission(
           latestState,
           taskExecution.data,
+          resolvedScope,
         );
         return json(res, 200, {
           taskExecution: taskExecution.data,
@@ -148,55 +132,11 @@ export function createQueryServer({
           executionMission,
           currentTaskExecutionCount: taskExecution.data.length,
           currentExecutionMissionCount: executionMission.length,
-          selection: "provider_observed_at_then_source_record_id_v1",
-          convergence: "selected_fact_dependency_join_v2",
+          resolvedScope,
+          scopeResolution: suppliedScope ? "explicit_or_configured" : "unique_legacy_candidate",
+          selection: "provider_observed_at_then_source_record_id_scoped_v2",
+          convergence: "selected_fact_dependency_join_scoped_v3",
           auditHistoryPreserved: true,
-        });
-      }
-      if (
-        req.method === "GET" &&
-        (match = url.pathname.match(/^\/api\/v1\/tasks\/(.+)\/timeline$/))
-      ) {
-        const urn = decode(match[1]);
-        const result = await client.queryJson(
-          `SELECT * FROM telemetry_serving.task_timeline WHERE task_entity_urn=${sqlString(urn)} ORDER BY occurred_at LIMIT 1000`,
-        );
-        return json(res, 200, {
-          data: result.data,
-          data_watermark: result.data.at(-1)?.projected_at ?? null,
-          projection_lag: null,
-          completeness: "best_known",
-          source_provenance: true,
-        });
-      }
-      if (
-        req.method === "GET" &&
-        (match = url.pathname.match(/^\/api\/v1\/tasks\/(.+)\/relations$/))
-      ) {
-        const urn = decode(match[1]);
-        const result = await client.queryJson(
-          `SELECT * FROM telemetry_core.entity_relation_fact WHERE source_entity_urn=${sqlString(urn)} OR target_entity_urn=${sqlString(urn)} ORDER BY valid_from LIMIT 1000`,
-        );
-        return json(res, 200, {
-          data: result.data,
-          data_watermark: result.data.at(-1)?.created_at ?? null,
-          relation_confidence: [
-            ...new Set(result.data.map((value) => value.confidence_class)),
-          ],
-        });
-      }
-      if (
-        req.method === "GET" &&
-        url.pathname === "/api/v1/topology/sdar-smpp"
-      ) {
-        const tenant = url.searchParams.get("tenantId");
-        const where = tenant ? ` WHERE tenant_id=${sqlString(tenant)}` : "";
-        const result = await client.queryJson(
-          `SELECT * FROM telemetry_serving.sdar_smpp_execution_topology${where} ORDER BY valid_from DESC LIMIT 5000`,
-        );
-        return json(res, 200, {
-          data: result.data,
-          data_watermark: result.data[0]?.valid_from ?? null,
         });
       }
       if (
@@ -223,10 +163,7 @@ export function createQueryServer({
         req.method === "GET" &&
         url.pathname === "/api/v1/projections/watermarks"
       ) {
-        const result = await client.queryJson(
-          "SELECT * FROM telemetry_serving.projection_watermark ORDER BY projection_id,projection_version",
-        );
-        return json(res, 200, { data: result.data });
+        return json(res, 200, await queryProjectionProgress(client, { enabled: pagination.snapshotEnabled ?? false, targetId: pagination.snapshotTargetId ?? "standalone-smpp" }));
       }
       if (
         req.method === "GET" &&
@@ -256,6 +193,7 @@ export function createQueryServer({
       }
       return json(res, 404, { error: "NOT_FOUND" });
     } catch (error: unknown) {
+      if (error instanceof AuthorityRequestError || error instanceof PageRequestError) return json(res, error.statusCode, { error: error.code });
       const invalid =
         error instanceof Error &&
         "statusCode" in error &&

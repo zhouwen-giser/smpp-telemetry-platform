@@ -4,7 +4,10 @@ export interface QueryResult {
   data: Record<string, unknown>[];
 }
 export interface DiagnosticStore {
-  queryJson(sql: string): Promise<QueryResult>;
+  queryJson(sql: string, options?: { signal?: AbortSignal }): Promise<QueryResult>;
+}
+export class QueryStoreError extends Error {
+  constructor(readonly reason: "CONNECTION_FAILED" | "ACCESS_DENIED" | "SCHEMA_UNAVAILABLE" | "STORE_TIMEOUT" | "INVALID_RESPONSE") { super(reason); }
 }
 export class QueryClient implements DiagnosticStore {
   private readonly url: string;
@@ -31,20 +34,28 @@ export class QueryClient implements DiagnosticStore {
     if (this.passwordFile)
       this.password = (await readFile(this.passwordFile, "utf8")).trim();
   }
-  async queryJson(sql: string): Promise<QueryResult> {
+  async queryJson(sql: string, options: { signal?: AbortSignal } = {}): Promise<QueryResult> {
     const headers: Record<string, string> = {};
     if (this.user)
       headers["authorization"] =
         `Basic ${Buffer.from(`${this.user}:${this.password}`).toString("base64")}`;
-    const response = await fetch(
+    let response: Response;
+    try { response = await fetch(
       `${this.url}/?query=${encodeURIComponent(sql + " FORMAT JSON")}`,
       {
         method: "POST",
         headers,
-        signal: AbortSignal.timeout(10000),
+        signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000),
       },
-    );
-    if (!response.ok) throw new Error(`CLICKHOUSE_${response.status}`);
+    ); } catch (error) {
+      throw new QueryStoreError(options.signal?.aborted || (error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)) ? "STORE_TIMEOUT" : "CONNECTION_FAILED");
+    }
+    if (!response.ok) {
+      // ClickHouse emits only a numeric exception code into diagnostics, never its body.
+      const code = Number(response.headers.get("x-clickhouse-exception-code"));
+      await response.body?.cancel();
+      throw new QueryStoreError([401, 403].includes(response.status) || [497, 516].includes(code) ? "ACCESS_DENIED" : [16, 47, 60, 81].includes(code) ? "SCHEMA_UNAVAILABLE" : "CONNECTION_FAILED");
+    }
     const value: unknown = await response.json();
     if (
       typeof value !== "object" ||
@@ -56,7 +67,7 @@ export class QueryClient implements DiagnosticStore {
           typeof row === "object" && row !== null && !Array.isArray(row),
       )
     )
-      throw new Error("CLICKHOUSE_RESPONSE_INVALID");
+      throw new QueryStoreError("INVALID_RESPONSE");
     return { data: value.data as Record<string, unknown>[] };
   }
 }

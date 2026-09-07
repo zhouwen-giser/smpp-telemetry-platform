@@ -1,19 +1,21 @@
-// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';
 import {SdarSharedWarehouseProjectionV1,SmppUrnParserV1,SDAR_TARGET_SCHEMAS} from '../src/packages/projection/sdar-shared-warehouse-projection.js';
-import {envelope,mapping} from './helpers.js';
+import {envelope,mapping,at} from './helpers.js';
+import {asTelemetryEntry} from '../src/packages/wal/wal.js';
 
-function fact(overrides={}){
+function fact(overrides:Record<string,unknown>={}){
   const value=envelope(overrides);
-  return new SmppProviderOpsNormalizerV1().normalize({record:{kind:'accepted',envelope:value,mapping,receivedAt:'2026-08-18T01:02:04.000Z',trustedContext:{deploymentId:'dep-1',collectorId:'collector-1'}}})[0];
+  const record=asTelemetryEntry({record:{kind:'accepted',sourceSystem:'smpp',envelope:value,mapping,receivedAt:'2026-08-18T01:02:04.000Z',trustedContext:{deploymentId:'dep-1',collectorId:'collector-1'}},segment:1,offset:0,offsetEnd:1,walEpoch:'shared-projection-test',ingestSequence:1}).record;
+  assert.ok(record.kind==='accepted');
+  return at(new SmppProviderOpsNormalizerV1().normalize({record}),0);
 }
 
 test('typed SDAR mapper produces the exact external_provider_fact shape without goal or physical success',()=>{
   const output=new SdarSharedWarehouseProjectionV1().project(fact({payload:{currentState:'completed',terminalStatus:'completed',providerSubstate:'idle',providerRevision:'7',observedAt:'2026-08-18T01:02:03.004Z'}}));
-  assert.equal(output[0].table,'sdar_core.external_provider_fact');
-  const row=output[0].row;
+  assert.equal(at(output,0).table,'sdar_core.external_provider_fact');
+  const row=at(output,0).row;
   assert.equal(row.smpp_source_id,'smpp.test.provider-one');
   assert.equal(row.lifecycle_status,'completed');
   assert.equal(row.observed_at,'2026-08-18T01:02:03.004Z');
@@ -35,13 +37,13 @@ test('typed relation mapper preserves N:N facts with parsed entity identities an
   assert.equal(new Set(rows.map((row)=>row.relation_id)).size,4);
   assert.deepEqual(new Set(rows.map((row)=>row.source_entity_id)),new Set(['sdar-task-1','sdar-task-2']));
   assert.deepEqual(new Set(rows.map((row)=>row.target_entity_id)),new Set(['smpp-task-a','smpp-task-b']));
-  assert.ok(rows.every((row)=>row.smpp_source_id==='smpp.test.provider-one'&&row.source_record_hash.length===64));
+  assert.ok(rows.every((row)=>row.smpp_source_id==='smpp.test.provider-one'&&typeof row.source_record_hash==='string'&&row.source_record_hash.length===64));
   assert.ok(rows.every((row)=>row.binding_source==='provider_correlation_metadata'&&row.confidence_class==='traced'));
 });
 
 test('origin arrays require SDAR origin and observed_at falls back to the normalized fact timestamp',()=>{
   const projection=new SdarSharedWarehouseProjectionV1();
-  const nonSdar=projection.project(fact({attributes:{correlation:{originSystem:'other',originTaskIds:['foreign-task']}}}))[0].row;
+  const nonSdar=at(projection.project(fact({attributes:{correlation:{originSystem:'other',originTaskIds:['foreign-task']}}})),0).row;
   assert.deepEqual(nonSdar.origin_sdar_task_ids,[]);
   assert.equal(nonSdar.observed_at,'2026-07-18T03:12:10.120Z');
 });

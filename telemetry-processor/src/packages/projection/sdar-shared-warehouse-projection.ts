@@ -1,3 +1,7 @@
+import { parseEntityUrn } from '../../../../packages/telemetry-types/src/urn.js';
+import { isRecord } from '../../../../packages/telemetry-types/src/index.js';
+import type { CanonicalFact, EntityRelation } from '../normalization/types.js';
+import type { ProjectionRow } from '../exporters/output-plan.js';
 import {canonicalizeJson} from '../canonical/canonical.js';
 import {extractProviderOpsSemantics} from './provider-ops-payload-catalog.js';
 
@@ -33,33 +37,23 @@ export const SDAR_TARGET_SCHEMAS=Object.freeze({
   ])
 });
 
-function requiredString(value,code){if(typeof value!=='string'||value.length===0)throw new Error(code);return value;}
-function optionalString(value){return typeof value==='string'?value:'';}
-function localId(fact,type){return fact.entityRefs.find((ref)=>ref.entityType===type)?.localId??'';}
+function requiredString(value:unknown,code:string):string{if(typeof value!=='string'||value.length===0)throw new Error(code);return value;}
+function optionalString(value:unknown):string{return typeof value==='string'?value:'';}
+function localId(fact:CanonicalFact,type:string):string{return fact.entityRefs.find((ref)=>ref.entityType===type)?.localId??'';}
 
-export class SmppUrnParserV1{
-  parse(value){
-    const urn=requiredString(value,'SMPP_RELATION_URN_INVALID');
-    const parts=urn.split(':');
-    if(parts.length!==7||parts[0]!=='urn'||parts[1]!=='telemetry')throw new Error('SMPP_RELATION_URN_INVALID');
-    const decode=(part)=>{try{const value=decodeURIComponent(part);if(value.length===0||encodeURIComponent(value)!==part)throw new Error();return value;}catch{throw new Error('SMPP_RELATION_URN_INVALID');}};
-    const tenantId=decode(parts[2]);
-    const sourceSystem=requiredString(parts[3],'SMPP_RELATION_URN_INVALID');
-    const deploymentId=decode(parts[4]);
-    const entityType=requiredString(parts[5],'SMPP_RELATION_URN_INVALID');
-    const entityId=decode(parts[6]);
-    if(!/^[a-z][a-z0-9_-]{0,63}$/.test(sourceSystem)||!/^[a-z][a-z0-9_-]{0,63}$/.test(entityType))throw new Error('SMPP_RELATION_URN_INVALID');
-    return Object.freeze({version:1,urn,tenantId,sourceSystem,deploymentId,entityType,entityId});
-  }
+export class SmppUrnParserV1 {
+  parse(value:unknown){try{const parsed=parseEntityUrn(value);return Object.freeze({version:1,urn:requiredString(value,'SMPP_RELATION_URN_INVALID'),...parsed});}catch{throw new Error('SMPP_RELATION_URN_INVALID');}}
 }
 
+function jsonRows(raw:string):Record<string,unknown>[]{const value:unknown=JSON.parse(raw);if(!isRecord(value)||!Array.isArray(value.data)||!value.data.every(isRecord))throw new Error('SMPP_SCHEMA_DRIFT');return value.data;}
 export class SdarWarehouseSchemaPreflight{
-  async assert(client){
-    const release=JSON.parse(await client.query("SELECT release_version,migration_range,release_descriptor_hash,schema_contract_hash FROM sdar_meta.v_schema_contract_release_current FORMAT JSON"));
-    const row=release.data?.[0];
+  async assert(client:{query?:(sql:string)=>Promise<string>}){
+    if(!client.query)throw new Error('SMPP_SCHEMA_CLIENT_REQUIRED');
+    const release=jsonRows(await client.query("SELECT release_version,migration_range,release_descriptor_hash,schema_contract_hash FROM sdar_meta.v_schema_contract_release_current FORMAT JSON"));
+    const row=release[0];
     if(row?.release_version!=='1.5.1-rc.2'||row?.migration_range!=='00..26'||row?.schema_contract_hash!=='sha256:78da6e9e511b7714b15a4f6ef5f2ba54578880493e2aa264f433ff1595a1d7b8'||row?.release_descriptor_hash!=='sha256:1610cf2a4cc9450193dd70abf7a516f0ea4792099ed0f34dcf2fad44d094b335')throw new Error('SMPP_SCHEMA_DRIFT');
     const names=Object.keys(SDAR_TARGET_SCHEMAS).map((name)=>name.split('.')[1]);
-    const columns=JSON.parse(await client.query(`SELECT concat(database,'.',table) AS target,name,type FROM system.columns WHERE database='sdar_core' AND table IN (${names.map((name)=>`'${name}'`).join(',')}) ORDER BY target,position FORMAT JSON`)).data??[];
+    const columns=jsonRows(await client.query(`SELECT concat(database,'.',table) AS target,name,type FROM system.columns WHERE database='sdar_core' AND table IN (${names.map((name)=>`'${name}'`).join(',')}) ORDER BY target,position FORMAT JSON`));
     for(const [target,expected] of Object.entries(SDAR_TARGET_SCHEMAS)){
       const actual=columns.filter((column)=>column.target===target).map((column)=>[column.name,column.type]);
       if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('SMPP_SCHEMA_DRIFT');
@@ -70,8 +64,9 @@ export class SdarWarehouseSchemaPreflight{
 }
 
 export class SdarSharedWarehouseProjectionV1{
+  readonly urnParser:SmppUrnParserV1;readonly projectionId:string;readonly projectionVersion:number;
   constructor({urnParser=new SmppUrnParserV1()}={}){this.urnParser=urnParser;this.projectionId=SDAR_PROVIDER_PROJECTION_ID;this.projectionVersion=SDAR_PROJECTION_VERSION;}
-  project(fact){
+  project(fact:CanonicalFact){
     const smppSourceId=requiredString(fact.sourceInstance?.smppSourceId,'SMPP_SOURCE_MAPPING_ID_MISSING');
     if(fact.provenance?.mappingVersion!==4)throw new Error('SMPP_SOURCE_MAPPING_ID_MISSING');
     const rawPayload=fact.payload?.payload;
@@ -85,15 +80,15 @@ export class SdarSharedWarehouseProjectionV1{
       lifecycle_status:optionalString(semantics.lifecycleStatus),provider_substate:optionalString(semantics.providerSubstate),reason_code:optionalString(semantics.reasonCode),runtime_revision:optionalString(semantics.runtimeRevision)||optionalString(fact.sourceInstance.runtimeVersion),provider_revision:optionalString(semantics.providerRevision)||(fact.payload?.observationRevision==null?'':String(fact.payload.observationRevision)),progress_percent:typeof semantics.progressPercent==='number'?semantics.progressPercent:null,
       correlation_id:optionalString(fact.correlation?.correlationId),causation_record_id:optionalString(fact.correlation?.causationRecordId),trace_id:optionalString(fact.correlation?.traceId),span_id:optionalString(fact.correlation?.spanId),
       origin_sdar_runtime_ids:fact.correlation?.originSystem==='sdar'?[...(fact.correlation.originRuntimeInstanceIds??[])]:[],origin_sdar_task_ids:fact.correlation?.originSystem==='sdar'?[...(fact.correlation.originTaskIds??[])]:[],origin_sdar_invocation_ids:fact.correlation?.originSystem==='sdar'?[...(fact.correlation.originInvocationIds??[])]:[],
-      entity_refs_json:canonicalizeJson(fact.entityRefs??[]),payload_json:canonicalizeJson(fact.payload),provenance_json:canonicalizeJson({normalizerId:fact.provenance.normalizerId,normalizerVersion:fact.provenance.normalizerVersion,mappingVersion:4,policyVersion:fact.provenance.policyVersion,targetAdapter:'SdarSharedWarehouseProjectionV1',payloadCatalog:'smpp.providerops-payload-catalog/v1.1',terminalStatus:semantics.terminalStatus??null,runtimeSemantic:fact.payload?.runtimeSemantic??null,providerTerminalIsGoalSuccess:false,hintsUsedForAuthority:false}),
+      entity_refs_json:canonicalizeJson(fact.entityRefs??[]),payload_json:canonicalizeJson(fact.payload),provenance_json:canonicalizeJson({normalizerId:fact.provenance.normalizerId,normalizerVersion:fact.provenance.normalizerVersion,mappingVersion:4,policyVersion:fact.provenance.policyVersion,providerQuality:fact.provenance.providerQuality,targetAdapter:'SdarSharedWarehouseProjectionV1',payloadCatalog:'smpp.providerops-payload-catalog/v1.1',terminalStatus:semantics.terminalStatus??null,runtimeSemantic:fact.payload?.runtimeSemantic??null,providerTerminalIsGoalSuccess:false,hintsUsedForAuthority:false}),
       occurred_at:fact.occurredAt,observed_at:semantics.observedAt??fact.observedAt??fact.occurredAt,received_at:fact.receivedAt,normalized_at:fact.normalizedAt,
       normalizer_id:fact.provenance.normalizerId,normalizer_version:fact.provenance.normalizerVersion,mapping_version:4,policy_version:fact.provenance.policyVersion,projection_id:SDAR_PROVIDER_PROJECTION_ID,projection_version:SDAR_PROJECTION_VERSION
     };
-    const rows=[{table:'sdar_core.external_provider_fact',row:provider}];
+    const rows:Array<{table:string;row:ProjectionRow}>=[{table:'sdar_core.external_provider_fact',row:provider}];
     for(const relation of fact.relations??[])rows.push({table:'sdar_core.external_entity_relation_fact',row:this.#relation(fact,relation,smppSourceId)});
     return rows;
   }
-  #relation(fact,relation,smppSourceId){
+  #relation(fact:CanonicalFact,relation:EntityRelation,smppSourceId:string){
     const source=this.urnParser.parse(relation.sourceEntityUrn);const target=this.urnParser.parse(relation.targetEntityUrn);
     return {tenant_id:fact.tenantId,project_id:fact.projectId,environment:fact.environment,smpp_source_id:smppSourceId,relation_id:relation.relationId,relation_type:relation.relationType,relation_version:relation.relationVersion,source_entity_urn:source.urn,source_entity_type:source.entityType,source_entity_id:source.entityId,target_entity_urn:target.urn,target_entity_type:target.entityType,target_entity_id:target.entityId,source_system:relation.sourceSystem,target_system:relation.targetSystem,valid_from:relation.validFrom,valid_to:relation.validTo,correlation_id:optionalString(relation.correlationId),trace_id:optionalString(relation.traceId),causation_fact_id:relation.causationFactId??null,route_id:optionalString(relation.routeId),attempt_no:relation.attemptNo??null,evidence_fact_ids:[...(relation.evidenceFactIds??[])],binding_source:requiredString(relation.bindingSource,'SMPP_RELATION_AMBIGUOUS'),confidence_class:requiredString(relation.confidenceClass,'SMPP_RELATION_AMBIGUOUS'),source_record_id:fact.sourceRecordId,source_record_hash:fact.sourceRecordHash,created_at:relation.createdAt,projection_id:SDAR_RELATION_PROJECTION_ID,projection_version:SDAR_PROJECTION_VERSION};
   }

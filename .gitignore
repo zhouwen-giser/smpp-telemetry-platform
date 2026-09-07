@@ -5,9 +5,13 @@ secrets/*.txt
 *.log
 *.tmp
 .env
+artifacts/
+.joint-state/
 .DS_Store
 .codex/
 dist/
+__pycache__/
+*.pyc
 # ClickHouse source archives and local compilation outputs are generated on the
 # deployment host. Keep them on disk, but never put them in Git history.
 clickhouse-arm64/vendor/
@@ -18,3 +22,13 @@ clickhouse-arm64/.cache/
 # One-click bundles, repair archives and checksum sidecars are generated
 # delivery artifacts. Publish them outside Git instead of committing them.
 reports/smpp-stable-integration/delivery/
+
+# Keep raw qualification captures and one-off host scripts local. Reviewed
+# documentation and the historical evidence index remain version controlled.
+reports/code-audit-20260907/
+reports/deployment-arm64-20260907/*
+!reports/deployment-arm64-20260907/DEPLOYMENT.md
+reports/remediation-20260907/**
+!reports/remediation-20260907/**/
+!reports/remediation-20260907/**/*.md
+!reports/remediation-20260907/EVIDENCE_INDEX.json

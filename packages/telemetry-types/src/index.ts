@@ -1,8 +1,9 @@
 export type ProjectionLayer = 'landing' | 'normalized' | 'core' | 'relation';
 
 export interface OtlpLogRecord {
-  body: ProviderOpsEnvelope;
+  body: unknown;
   attributes: Record<string, unknown>;
+  resource?: Record<string, unknown>;
 }
 
 export interface ProviderOpsEnvelope {
@@ -56,7 +57,8 @@ export interface CollectResult {
   receiptId?: string;
   errorCode?: string;
   message?: string;
-  wal?: { segment: string; offset: number };
+  rejectionId?: string;
+  wal?: { segment: number; offset: number };
 }
 
 export interface ProjectionTargetConfig {
@@ -67,6 +69,38 @@ export interface ProjectionTargetConfig {
   acceptAllMappings?: boolean;
   routeIds?: string[];
   writeLayers: ProjectionLayer[];
-  connection: { url: string; username?: string; password?: string; database?: string };
+  generation?: string;
+  snapshotEnabled?: boolean;
+  connection: { url: string; user?: string; userEnv?: string; password?: string; passwordEnv?: string; passwordFile?: string; timeoutMs?: number };
   tableMap?: Record<string, string>;
 }
+
+export interface SourceMappingSnapshot {
+  tenantId: string; projectId: string; environment: string; smppSourceId: string;
+  mappingVersion: number; policyVersion: number; sourceProduct: string; projectionRouteIds: string[];
+}
+export interface TrustedIngressContext { collectorId: string; deploymentId: string; trustDomain?: string; ingressMode?: string }
+export interface ProviderQuality {
+  status: string; reasonCodes: string[]; blockingCode?: string; observedSequence?: number;
+  previousMaximum?: number; gapStart?: number; gapEnd?: number;
+}
+export interface AcceptedWalRecord {
+  [key:string]:unknown;
+  kind: 'accepted'; sourceSystem: string; receiptId?: string; receivedAt: string;
+  trustedContext: TrustedIngressContext; mapping: SourceMappingSnapshot; envelope: ProviderOpsEnvelope;
+  providerQuality?: ProviderQuality;
+}
+export interface ConflictWalRecord {
+  [key:string]:unknown;kind:'conflict';sourceSystem:string;receiptId?:string;receivedAt:string;
+  trustedContext:TrustedIngressContext;mapping:SourceMappingSnapshot;envelope:ProviderOpsEnvelope;providerQuality?:ProviderQuality;
+  acceptedRecordHash?:string;summary:string;errorCode?:string;
+}
+export interface RejectedWalRecord {
+  [key:string]:unknown;
+  kind:'rejected'; sourceSystem:string; rejectionId:string; receivedAt:string;
+  trustedContext:TrustedIngressContext; mapping:SourceMappingSnapshot|null;
+  sourceHint:Record<string,string>; errorCode:string; errorSummary:string;
+}
+export type TelemetryWalRecord = AcceptedWalRecord | ConflictWalRecord | RejectedWalRecord;
+
+export function isRecord(value:unknown):value is Record<string,unknown> { return value!==null&&typeof value==='object'&&!Array.isArray(value); }

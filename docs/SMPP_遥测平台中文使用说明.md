@@ -1,5 +1,9 @@
 # SMPP 遥测平台中文使用说明
 
+本项目属于仿真游戏控制代码体系，本仓库提供遥测采集、存储和只读分析，不涉及真实物理世界或真实设备控制。UGV、Device、Mission 及动作名称均为游戏协议术语；`live` 表示连接运行中的仿真软件。
+
+当前能力边界见 [实施范围](IMPLEMENTATION_SCOPE.md)，调试历史及待完善项见 [2026-09-07 审查记录](DEBUG_HISTORY_AND_GAPS_2026-09-07.md)。联合开发服务器使用 [联合部署说明](../deploy/joint-development/README.md)；下文根目录 `deploy.sh` 是 ARM64 源码构建入口，两者的环境要求和 `.env` 模板不同。
+
 ## 1. 功能范围
 
 本项目以 Docker Compose 一键部署以下容器：
@@ -27,7 +31,7 @@ SMPP Runtime
 已经实现。出口位于：
 
 ```text
-telemetry-processor/src/packages/exporters/target-manager.js
+telemetry-processor/src/packages/exporters/target-manager.ts
 ```
 
 处理流程如下：
@@ -50,7 +54,7 @@ Processor WAL
 - WAL checkpoint；
 - 故障状态。
 
-默认启用 `standalone-smpp`，写入本地 ClickHouse。配置中还提供了禁用状态的 `sdar-warehouse-shadow`，未来 SDAR 遥测仓库具备 ClickHouse 表合同后，可通过 `tableMap` 和独立连接启用影子投影。一个 Target 写入失败不会推进它自己的 checkpoint，也不会阻塞其他 Target。
+默认启用 `standalone-smpp`，写入本地 ClickHouse。配置中还提供了禁用状态的 `sdar-warehouse-shadow`；其 `sdar_shared_warehouse` 适配器和 schema 预检已经实现，启用时需要兼容的共享库、精确路由和独立连接。该目标禁止自定义 `tableMap`。一个 Target 写入失败不会推进它自己的 checkpoint，也不会阻塞其他 Target；永久错误的死信与重放流程尚待补齐。
 
 配置文件：
 
@@ -62,14 +66,14 @@ config/projection-targets.example.json
 
 部署机需要：
 
-- Linux、macOS 或支持 Docker Desktop 的 Windows；
+- 根目录源码构建入口要求原生 Linux ARM64，CPU 支持 CRC32；联合开发包另支持 Linux amd64/arm64；
 - Docker Engine 24 或更高版本；
 - Docker Compose v2；
 - OpenSSL；
-- 至少 4 GB 可用内存，建议 8 GB；
+- 根目录 ClickHouse 源码构建推荐 32 GiB 内存、80 GiB 空闲磁盘；联合开发包的要求见其说明；
 - 默认端口 `4317`、`4318`、`8123`、`9000`、`8088` 和 `3000` 未被占用。
 
-Windows 建议在 WSL2 中执行脚本。
+各部署入口的架构要求应以对应部署说明为准；运行测试通过不能替代目标架构容器验收。
 
 ## 4. 最简单的一键部署
 
@@ -115,8 +119,8 @@ SMPP_SERVICES=smpp-a|http://192.168.1.101:3000,smpp-b|http://192.168.1.102:3000
 3. 生成 Processor 管理密钥；
 4. 生成 Grafana 管理员密码；
 5. 根据 SMPP 地址生成来源映射；
-6. 拉取镜像；
-7. 构建 Processor 和 Query API；
+6. 检查 ARM64/CRC，校验本地 ClickHouse 源码归档并构建、执行原生版本门禁；
+7. 拉取其余基础镜像，构建 Processor 和 Query API；
 8. 启动全部容器；
 9. 由 ClickHouse 容器自动执行全部建库脚本。
 

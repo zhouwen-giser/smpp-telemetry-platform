@@ -21,6 +21,13 @@ test('one-click deployment assets exist and include all containers',async()=>{
   assert.match(compose,/PROCESSOR_SHUTDOWN_TIMEOUT_MS/);
   const processorDockerfile=await readFile(new URL('telemetry-processor/Dockerfile',root),'utf8');
   assert.match(processorDockerfile,/COPY contracts \.\/dist\/contracts/);
+  assert.match(processorDockerfile,/COPY contracts \.\/contracts/);
+  assert.match(processorDockerfile,/COPY package\.json package-lock\.json tsconfig\.json/);
+  assert.match(processorDockerfile,/npm ci --include=dev --ignore-scripts/);
+  assert.doesNotMatch(processorDockerfile,/npm install/);
+  assert.match(compose,/MIGRATION_LOCK_FILE: \/var\/lib\/smpp-telemetry\/migrations\/migration.sqlite/);
+  assert.match(compose,/migration-state:\/var\/lib\/smpp-telemetry\/migrations/);
+  assert.doesNotMatch(compose,/migrations:\/docker-entrypoint-initdb.d/);
   const clickhouseDockerfile=await readFile(new URL('clickhouse-arm64/Dockerfile',root),'utf8');
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_REF=v25\.3\.14\.14-lts/);
   assert.match(clickhouseDockerfile,/CLICKHOUSE_SOURCE_COMMIT=84d6b30ad528e77d787ab7a2437406c1e2a5887a/);
@@ -59,8 +66,8 @@ test('ClickHouse DateTime64 retention expressions are compatible with the pinned
 });
 test('projection target output includes standalone and SDAR shadow targets',async()=>{
   const cfg=JSON.parse(await readFile(new URL('config/projection-targets.example.json',root),'utf8'));
-  assert.equal(cfg.targets.find(x=>x.targetId==='standalone-smpp')?.enabled,true);
-  assert.equal(cfg.targets.find(x=>x.targetId==='sdar-warehouse-shadow')?.enabled,false);
+  assert.equal(cfg.targets.find((x: {targetId: string; enabled: boolean})=>x.targetId==='standalone-smpp')?.enabled,true);
+  assert.equal(cfg.targets.find((x: {targetId: string; enabled: boolean})=>x.targetId==='sdar-warehouse-shadow')?.enabled,false);
 });
 test('x86_64 development override replaces only the ClickHouse build path',async()=>{
   const example=await readFile(new URL('.env.example',root),'utf8');

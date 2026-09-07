@@ -1,14 +1,20 @@
-// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';
 import {calculateProviderOpsRecordHash} from '../src/packages/canonical/canonical.js';
-import {envelope,mapping} from './helpers.js';
+import {envelope,mapping,at} from './helpers.js';
+import {asTelemetryEntry} from '../src/packages/wal/wal.js';
+import type {AcceptedWalRecord} from '../../packages/telemetry-types/src/index.js';
+import type {EntityRelation} from '../src/packages/normalization/types.js';
 
-function entry(e){return{record:{envelope:e,mapping,receivedAt:'2026-07-18T03:12:11Z',trustedContext:{deploymentId:'smpp-d1',collectorId:'c1'}}};}
+function entry(e:Record<string,unknown>):{record:AcceptedWalRecord}{
+  const record=asTelemetryEntry({record:{kind:'accepted',sourceSystem:'smpp',envelope:e,mapping,receivedAt:'2026-07-18T03:12:11Z',trustedContext:{deploymentId:'smpp-d1',collectorId:'c1'}},segment:1,offset:0,offsetEnd:1,walEpoch:'normalizer-test',ingestSequence:1}).record;
+  assert.ok(record.kind==='accepted');
+  return {record};
+}
 
 test('normalizer emits canonical fact and source-neutral provenance',()=>{
-  const f=new SmppProviderOpsNormalizerV1().normalize(entry(envelope()))[0];
+  const f=at(new SmppProviderOpsNormalizerV1().normalize(entry(envelope())),0);
   assert.equal(f.sourceSystem,'smpp');
   assert.equal(f.factHash.length,64);
   assert.match(f.sourceInstanceUrn,/urn:telemetry:/);
@@ -17,11 +23,11 @@ test('normalizer emits canonical fact and source-neutral provenance',()=>{
 });
 
 test('2 SDAR x 2 SMPP relations remain distinct non-authoritative hints',()=>{
-  const n=new SmppProviderOpsNormalizerV1(),rels=[];
+  const n=new SmppProviderOpsNormalizerV1(),rels:EntityRelation[]=[];
   for(const [i,smppTask] of ['p1','p2'].entries()){
     const e=envelope({recordId:i===0?'d56fda7f-f41a-5f54-96c8-0ee0edcb7de5':'b56fda7f-f41a-5f54-96c8-0ee0edcb7de5',taskId:smppTask,attributes:{correlation:{originSystem:'sdar',originDeploymentId:'sdar-d1',originTaskIds:['s2','s1','s1']}}});
     e.recordHash=calculateProviderOpsRecordHash(e);
-    rels.push(...n.normalize(entry(e))[0].relations);
+    rels.push(...at(n.normalize(entry(e)),0).relations);
   }
   assert.equal(rels.length,4);
   assert.equal(new Set(rels.map(r=>r.relationId)).size,4);
@@ -34,7 +40,7 @@ test('2 SDAR x 2 SMPP relations remain distinct non-authoritative hints',()=>{
 test('canonical top-level trace/span win and source lineage is preserved',()=>{
   const e=envelope({traceId:'1'.repeat(32),spanId:'2'.repeat(16),providerEventId:'evt-1',providerEventSequence:7,resourceId:'ugv-01',resourceType:'ugv',externalExecutionId:'execution-1',eventType:'resource.state',attributes:{traceId:'3'.repeat(32),spanId:'4'.repeat(16)}});
   e.recordHash=calculateProviderOpsRecordHash(e);
-  const fact=new SmppProviderOpsNormalizerV1().normalize(entry(e))[0];
+  const fact=at(new SmppProviderOpsNormalizerV1().normalize(entry(e)),0);
   assert.equal(fact.correlation.traceId,'1'.repeat(32));
   assert.equal(fact.correlation.spanId,'2'.repeat(16));
   assert.equal(fact.payload.providerEventId,'evt-1');

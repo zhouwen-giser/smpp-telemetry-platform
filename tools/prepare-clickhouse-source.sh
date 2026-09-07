@@ -11,7 +11,7 @@ CACHE_DIR=${CLICKHOUSE_PACKAGING_CACHE_DIR:-/tmp/smpp-clickhouse-25.3.14.14-sour
 FETCH_RETRIES=${CLICKHOUSE_SOURCE_FETCH_RETRIES:-12}
 FETCH_JOBS=${CLICKHOUSE_SOURCE_FETCH_JOBS:-2}
 
-for command_name in git tar zstd sha256sum; do
+for command_name in git tar zstd sha256sum python3; do
   command -v "$command_name" >/dev/null 2>&1 \
     || { echo "missing source packaging command: $command_name" >&2; exit 1; }
 done
@@ -98,7 +98,9 @@ for required_source_file in "${required_source_files[@]}"; do
 done
 
 SOURCE_EPOCH=$(git -C "$CACHE_DIR" show -s --format=%ct "$SOURCE_COMMIT")
+git -C "$CACHE_DIR" diff-index --quiet HEAD --
 printf '%s\n' "$SOURCE_COMMIT" > "$CACHE_DIR/.clickhouse-source-revision"
+python3 "$ROOT/clickhouse-arm64/release-version.py" prepare "$CACHE_DIR"
 TEMP_ARCHIVE="$OUTPUT.tmp"
 rm -f -- "$TEMP_ARCHIVE"
 

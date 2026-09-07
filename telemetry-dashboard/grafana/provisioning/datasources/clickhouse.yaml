@@ -1,9 +1,13 @@
 apiVersion: 1
+deleteDatasources:
+  - name: SMPP Runtime Metrics
+    orgId: 1
 datasources:
   - name: ClickHouse
     uid: clickhouse
     type: grafana-clickhouse-datasource
     access: proxy
+    isDefault: true
     jsonData:
       host: clickhouse
       port: 9000
@@ -12,9 +16,3 @@ datasources:
       defaultDatabase: telemetry_serving
     secureJsonData:
       password: ${CLICKHOUSE_PASSWORD}
-  - name: SMPP Runtime Metrics
-    uid: smpp-runtime-prometheus
-    type: prometheus
-    access: proxy
-    url: http://otel-collector:9464
-    isDefault: false

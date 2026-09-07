@@ -10,13 +10,13 @@ const RECORD_TYPES=Object.freeze([
   'provider.business_event.relation.lifecycle'
 ]);
 
-function isPlainObject(value){return value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;}
-function validUtc(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value))return false;const parsed=Date.parse(value);return Number.isFinite(parsed);}
-function validateValue(type,value){
+function isPlainObject(value:unknown):value is Record<string,unknown>{return value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.getPrototypeOf(value)===Object.prototype;}
+function validUtc(value:unknown){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value))return false;const parsed=Date.parse(value);return Number.isFinite(parsed);}
+function validateValue(type:string,value:unknown){
   if(type==='string')return typeof value==='string'&&value.length>0&&value.length<=512;
   if(type==='nullable_string')return value===null||(typeof value==='string'&&value.length>0&&value.length<=512);
   if(type==='boolean')return typeof value==='boolean';
-  if(type==='integer')return Number.isSafeInteger(value)&&value>=0;
+  if(type==='integer')return typeof value==='number'&&Number.isSafeInteger(value)&&value>=0;
   if(type==='string_array')return Array.isArray(value)&&value.every((item)=>typeof item==='string'&&item.length>0&&item.length<=512);
   if(type==='utc')return validUtc(value);
   if(type==='percent')return typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100;
@@ -33,12 +33,13 @@ export function assertPayloadCatalog(){
   return catalog;
 }
 
-export function extractProviderOpsSemantics(recordType,payload){
+export function extractProviderOpsSemantics(recordType:string,payload:unknown){
   assertPayloadCatalog();
-  const definition=catalog.recordTypes[recordType];
+  const definitions:Readonly<Record<string,{fields:Record<string,{source:string;type:string}>}>>=catalog.recordTypes;
+  const definition=definitions[recordType];
   if(!definition)throw new Error('SMPP_PAYLOAD_CONTRACT_MISSING');
   if(!isPlainObject(payload))throw new Error('SMPP_PAYLOAD_CONTRACT_INVALID');
-  const semantics={};
+  const semantics:Record<string,unknown>={};
   for(const [target,rule] of Object.entries(definition.fields)){
     const value=payload[rule.source];
     if(value===undefined)continue;

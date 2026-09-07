@@ -35,8 +35,11 @@ test('validator allowlists equal the current SMPP ProviderOps source capture',()
 });
 
 test('unknown schema major and OTLP/body mismatch fail closed',()=>{
-  assert.equal(validateEnvelope({...envelope,schemaVersion:'2.0.0'},attributes).code,'SCHEMA_VERSION_UNSUPPORTED');
-  assert.equal(validateEnvelope(envelope,{...attributes,'sdar.record.hash':'0'.repeat(64)}).code,'OTLP_RECORD_HASH_MISMATCH');
+  const versionResult=validateEnvelope({...envelope,schemaVersion:'2.0.0'},attributes); assert.ok('code' in versionResult);
+  assert.equal(versionResult.code,'SCHEMA_VERSION_UNSUPPORTED');
+  const hashResult=validateEnvelope(envelope,{...attributes,'sdar.record.hash':'0'.repeat(64)}); assert.ok('code' in hashResult);
+  assert.equal(hashResult.code,'OTLP_RECORD_HASH_MISMATCH');
   const missing={...attributes};delete missing['sdar.schema.name'];
-  assert.equal(validateEnvelope(envelope,missing).code,'OTLP_CONTRACT_ATTRIBUTE_MISSING');
+  const missingResult=validateEnvelope(envelope,missing); assert.ok('code' in missingResult);
+  assert.equal(missingResult.code,'OTLP_CONTRACT_ATTRIBUTE_MISSING');
 });

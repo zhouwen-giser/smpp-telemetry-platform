@@ -1,4 +1,5 @@
-function anyValue(value) {
+import type { OtlpJsonAnyValue, OtlpJsonKeyValue, OtlpJsonRequest, DecodedOtlpLog } from './otlp-types.js';
+function anyValue(value: OtlpJsonAnyValue | undefined): unknown {
   if (!value || typeof value !== 'object') return null;
   if ('stringValue' in value) return value.stringValue;
   if ('boolValue' in value) return Boolean(value.boolValue);
@@ -8,17 +9,17 @@ function anyValue(value) {
   }
   if ('doubleValue' in value) return Number(value.doubleValue);
   if ('bytesValue' in value) return value.bytesValue;
-  if (value.arrayValue) return (value.arrayValue.values ?? []).map(anyValue);
-  if (value.kvlistValue) return Object.fromEntries((value.kvlistValue.values ?? []).map((entry) => [entry.key, anyValue(entry.value)]));
+  if ('arrayValue' in value) return (value.arrayValue.values ?? []).map(anyValue);
+  if ('kvlistValue' in value) return Object.fromEntries((value.kvlistValue.values ?? []).map((entry) => [entry.key, anyValue(entry.value)]));
   return null;
 }
 
-function attrs(entries = []) {
+function attrs(entries: OtlpJsonKeyValue[] = []): Record<string, unknown> {
   return Object.fromEntries(entries.map((entry) => [entry.key, anyValue(entry.value)]));
 }
 
-export function decodeOtlpJson(input) {
-  const result = [];
+export function decodeOtlpJson(input: OtlpJsonRequest): DecodedOtlpLog[] {
+  const result: DecodedOtlpLog[] = [];
   for (const resourceLogs of input.resourceLogs ?? input.resource_logs ?? []) {
     const resource = attrs(resourceLogs.resource?.attributes);
     for (const scopeLogs of resourceLogs.scopeLogs ?? resourceLogs.scope_logs ?? []) {

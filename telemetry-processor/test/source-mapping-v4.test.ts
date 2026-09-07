@@ -7,11 +7,12 @@ import {SourceMappings} from '../src/packages/source-mapping/source-mapping.js';
 
 const base={collectorId:'c1',trustDomain:'td1',deploymentId:'dep1',providerId:'provider-1',instanceId:'runtime-1',smppSourceId:'smpp.test.provider-1',tenantId:'t1',projectId:'p1',environment:'test',mappingVersion:4,policyVersion:1,projectionRouteIds:['standalone-smpp','sdar-warehouse-shadow'],status:'active',validFrom:'2026-01-01T00:00:00Z',validTo:null};
 
-async function load(document){const root=await mkdtemp(join(tmpdir(),'mapping-v4-'));const file=join(root,'mappings.json');await writeFile(file,JSON.stringify(document));const mappings=new SourceMappings(file);await mappings.load();return mappings;}
+async function load(document: unknown){const root=await mkdtemp(join(tmpdir(),'mapping-v4-'));const file=join(root,'mappings.json');await writeFile(file,JSON.stringify(document));const mappings=new SourceMappings(file);await mappings.load();return mappings;}
 
 test('Source Mapping v4 returns the explicit stable smppSourceId',async()=>{
   const mappings=await load({version:4,mappings:[base]});
   const value=mappings.resolve({collectorId:'c1',trustDomain:'td1',deploymentId:'dep1',providerId:'provider-1',instanceId:'runtime-1',receivedAt:new Date('2026-08-18T00:00:00Z')});
+  assert.ok(value);
   assert.equal(value.smppSourceId,'smpp.test.provider-1');
   assert.equal(value.mappingVersion,4);
 });

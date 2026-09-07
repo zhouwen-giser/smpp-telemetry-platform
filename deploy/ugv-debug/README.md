@@ -1,5 +1,9 @@
 # UGV joint development profile (without Grafana)
 
+This profile supports simulation-game control software and its telemetry. UGV, Device,
+Mission and action names refer to virtual game entities. `live` means a running simulation
+software connection; this project does not control the physical world or real devices.
+
 Use `pnpm ugv:debug start|restart [YES|NO]` from the sibling SDAR checkout.
 The launcher generates private configuration in `/tmp/sdar-uap-p3-b01-<uid>/debug`, starts
 this standalone Compose profile, and connects SMPP Runtime through the shared
@@ -55,3 +59,7 @@ queue recovery after Collector restart, retained volumes and live seven-day TTL 
 submits Tasks nor invokes Device tools, and restores the two services in a finalizer.
 Reports are immutable files under `reports/ugv-debug/`. The TTL check does not claim a seven-day
 soak or insert fabricated/backdated telemetry. See the SDAR joint-debug guide for all stack ports.
+
+The Processor receives `WAL_CACHE_MAX_BYTES`, `WAL_ARCHIVE_DIR`, `WAL_GC_ENABLED` and `WAL_MAINTENANCE_INTERVAL_MS` from the environment. The default archive remains inside the persistent WAL volume. Optional `REPLAY_TARGETS_FILE` is a container path; bind-mount its registry and referenced credential files with a private Compose override. Mutating maintenance HTTP routes require a nonempty `PROCESSOR_ADMIN_API_KEY`; use the offline management CLI when retaining the default development mode.
+
+Snapshot queries are opt-in with `QUERY_SNAPSHOTS_ENABLED=true` and `QUERY_SNAPSHOT_TARGET_ID` matching a writer Target with `snapshotEnabled: true`. Both sides must be configured together; an old WAL requires a rebuild before its historical rows can claim complete snapshot coverage.

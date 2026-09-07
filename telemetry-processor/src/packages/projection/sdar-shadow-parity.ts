@@ -1,10 +1,11 @@
-function requiredIdentity(value,code){if(typeof value!=='string'||value.length===0)throw new Error(code);return value;}
-function latestMillis(rows,field){if(!rows.length)return null;const values=rows.map((row)=>Date.parse(requiredIdentity(row[field],'SMPP_PARITY_WATERMARK_INVALID')));if(values.some((value)=>!Number.isFinite(value)))throw new Error('SMPP_PARITY_WATERMARK_INVALID');return Math.max(...values);}
+interface ParityFact {factId:string;factHash:string;projectedAt:string}
+function requiredIdentity(value:unknown,code:string){if(typeof value!=='string'||value.length===0)throw new Error(code);return value;}
+function latestMillis(rows:readonly ParityFact[],field:keyof ParityFact){if(!rows.length)return null;const values=rows.map((row)=>Date.parse(requiredIdentity(row[field],'SMPP_PARITY_WATERMARK_INVALID')));if(values.some((value)=>!Number.isFinite(value)))throw new Error('SMPP_PARITY_WATERMARK_INVALID');return Math.max(...values);}
 
-export function compareSdarShadowParity({standaloneFacts,sdarFacts,relations,expectedRelationFactIds,maxWatermarkLagMs,minimumRelationCoverage}){
+export function compareSdarShadowParity({standaloneFacts,sdarFacts,relations,expectedRelationFactIds,maxWatermarkLagMs,minimumRelationCoverage}:{standaloneFacts:ParityFact[];sdarFacts:ParityFact[];relations:Array<{evidenceFactIds?:string[]}>;expectedRelationFactIds:string[];maxWatermarkLagMs:number;minimumRelationCoverage:number}){
   if(!Number.isSafeInteger(maxWatermarkLagMs)||maxWatermarkLagMs<0)throw new Error('SMPP_PARITY_BOUND_INVALID');
   if(typeof minimumRelationCoverage!=='number'||minimumRelationCoverage<0||minimumRelationCoverage>1)throw new Error('SMPP_PARITY_BOUND_INVALID');
-  const index=(rows)=>{const values=new Map();for(const row of rows){const id=requiredIdentity(row.factId,'SMPP_PARITY_IDENTITY_INVALID'),hash=requiredIdentity(row.factHash,'SMPP_PARITY_HASH_INVALID');const previous=values.get(id);if(previous!==undefined&&previous!==hash)throw new Error('SMPP_FACT_CONTENT_CONFLICT');values.set(id,hash);}return values;};
+  const index=(rows:ParityFact[])=>{const values=new Map<string,string>();for(const row of rows){const id=requiredIdentity(row.factId,'SMPP_PARITY_IDENTITY_INVALID'),hash=requiredIdentity(row.factHash,'SMPP_PARITY_HASH_INVALID');const previous=values.get(id);if(previous!==undefined&&previous!==hash)throw new Error('SMPP_FACT_CONTENT_CONFLICT');values.set(id,hash);}return values;};
   const standalone=index(standaloneFacts),sdar=index(sdarFacts);
   const missingFactIds=[...standalone.keys()].filter((id)=>!sdar.has(id)).sort();
   const unexpectedFactIds=[...sdar.keys()].filter((id)=>!standalone.has(id)).sort();

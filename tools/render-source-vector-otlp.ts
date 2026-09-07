@@ -1,3 +1,4 @@
+import type { OtlpJsonAnyValue } from '../telemetry-processor/src/packages/otlp/otlp-types.js';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { calculateProviderOpsRecordHash, uuidV5 } from '../telemetry-processor/src/packages/canonical/canonical.js';
@@ -7,7 +8,7 @@ const VECTOR_PATH = resolve(
   'telemetry-schema/contracts/test-vectors/smpp-local-source-provider-resource-state-1.1.0.json'
 );
 
-function anyValue(value) {
+function anyValue(value: unknown): OtlpJsonAnyValue {
   if (typeof value === 'string') return { stringValue: value };
   if (typeof value === 'boolean') return { boolValue: value };
   if (typeof value === 'number' && Number.isInteger(value)) return { intValue: String(value) };
@@ -23,7 +24,7 @@ function anyValue(value) {
   return { stringValue: '' };
 }
 
-function attributes(values) {
+function attributes(values: Record<string, unknown>) {
   return Object.entries(values).map(([key, value]) => ({ key, value: anyValue(value) }));
 }
 

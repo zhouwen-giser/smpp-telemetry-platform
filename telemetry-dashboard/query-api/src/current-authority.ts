@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { sqlString } from "./clickhouse.js";
+import { authorityIdentity, parseEntityUrn, sameScope, scopeFromRow, scopeSql, scopedEntityUrn, type AuthorityScope } from "./scope.js";
 
 export type MissionRelationStatus = "exact" | "unresolved" | "conflict";
 
@@ -61,8 +62,7 @@ function uuidV5(name: string): string {
 }
 
 function identity(value: string, code: string): string {
-  if (!value || value.length > 512) throw new Error(code);
-  return value;
+  return authorityIdentity(value, code);
 }
 
 function observationTime(value: string): number {
@@ -155,32 +155,25 @@ export function selectCurrentMissionAuthority(
 export function currentMissionStateSql(
   taskId: string,
   externalExecutionId: string,
+  scope: AuthorityScope,
 ): string {
   identity(taskId, "MISSION_AUTHORITY_TASK_ID_INVALID");
   identity(externalExecutionId, "MISSION_AUTHORITY_EXECUTION_ID_INVALID");
-  return `SELECT source_record_id AS record_id,source_record_hash,toString(fact_id) AS fact_id,tenant_id,project_id,environment,smpp_source_id,source_deployment_id,external_task_id AS task_id,external_execution_id,correlation_id,trace_id,occurred_at,coalesce(observed_at,occurred_at) AS observed_at,relation_status,device_mission_id,projected_at FROM (SELECT source_record_id,source_record_hash,fact_id,tenant_id,project_id,environment,smpp_source_id,source_deployment_id,external_task_id,external_execution_id,correlation_id,trace_id,occurred_at,observed_at,projected_at,JSONExtractString(payload_json,'payload','relationStatus') AS relation_status,JSONExtractString(payload_json,'payload','deviceMissionId') AS device_mission_id FROM sdar_core.external_provider_fact FINAL WHERE source_system='smpp' AND fact_type='provider.execution.progress' AND external_task_id=${sqlString(taskId)} AND external_execution_id=${sqlString(externalExecutionId)}) WHERE relation_status IN ('exact','unresolved','conflict') ORDER BY observed_at DESC,record_id DESC LIMIT 1`;
+  return `SELECT source_record_id AS record_id,source_record_hash,toString(fact_id) AS fact_id,tenant_id,project_id,environment,smpp_source_id,source_deployment_id,source_system,external_task_id AS task_id,external_execution_id,entity_refs_json,correlation_id,trace_id,occurred_at,coalesce(observed_at,occurred_at) AS observed_at,relation_status,device_mission_id,projected_at FROM (SELECT source_record_id,source_record_hash,fact_id,tenant_id,project_id,environment,smpp_source_id,source_deployment_id,source_system,external_task_id,external_execution_id,entity_refs_json,correlation_id,trace_id,occurred_at,observed_at,projected_at,JSONExtractString(payload_json,'payload','relationStatus') AS relation_status,JSONExtractString(payload_json,'payload','deviceMissionId') AS device_mission_id FROM sdar_core.external_provider_fact FINAL WHERE ${scopeSql(scope)} AND source_system='smpp' AND fact_type='provider.execution.progress' AND external_task_id=${sqlString(taskId)} AND external_execution_id=${sqlString(externalExecutionId)}) WHERE relation_status IN ('exact','unresolved','conflict') ORDER BY observed_at DESC,record_id DESC LIMIT 1`;
 }
 
 export function currentTaskExecutionSql(
   taskId: string,
   externalExecutionId: string,
+  scope: AuthorityScope,
 ): string {
   identity(taskId, "MISSION_AUTHORITY_TASK_ID_INVALID");
   identity(externalExecutionId, "MISSION_AUTHORITY_EXECUTION_ID_INVALID");
-  return `SELECT toString(relation_id) AS relation_id,relation_type,source_entity_id,target_entity_id,binding_source,confidence_class,source_record_id,valid_from,projected_at FROM sdar_core.external_entity_relation_fact FINAL WHERE relation_type='task_execution_binding' AND source_entity_id=${sqlString(taskId)} AND target_entity_id=${sqlString(externalExecutionId)} AND binding_source='smpp_runtime_reconciliation_found' AND confidence_class='authoritative' ORDER BY valid_from DESC,source_record_id DESC LIMIT 1 BY relation_id`;
+  return `SELECT toString(relation_id) AS relation_id,tenant_id,project_id,environment,smpp_source_id,source_system,target_system,relation_type,source_entity_urn,target_entity_urn,source_entity_type,target_entity_type,source_entity_id,target_entity_id,binding_source,confidence_class,source_record_id,valid_from,projected_at FROM sdar_core.external_entity_relation_fact FINAL WHERE ${scopeSql(scope, false)} AND relation_type='task_execution_binding' AND source_system='smpp' AND target_system='smpp' AND source_entity_type='task' AND target_entity_type='execution' AND source_entity_urn=${sqlString(scopedEntityUrn(scope, "task", taskId))} AND target_entity_urn=${sqlString(scopedEntityUrn(scope, "execution", externalExecutionId))} AND source_entity_id=${sqlString(taskId)} AND target_entity_id=${sqlString(externalExecutionId)} AND binding_source='smpp_runtime_reconciliation_found' AND confidence_class='authoritative' ORDER BY valid_from DESC,source_record_id DESC LIMIT 1 BY relation_id`;
 }
 
 function rowString(row: Record<string, unknown>, key: string): string {
   return typeof row[key] === "string" ? row[key] : "";
-}
-
-function entityUrn(
-  tenantId: string,
-  deploymentId: string,
-  entityType: "execution" | "device_mission",
-  entityId: string,
-): string {
-  return `urn:telemetry:${encodeURIComponent(tenantId)}:smpp:${encodeURIComponent(deploymentId)}:${entityType}:${encodeURIComponent(entityId)}`;
 }
 
 /**
@@ -194,11 +187,39 @@ function entityUrn(
 export function convergeCurrentExecutionMission(
   state: Record<string, unknown> | undefined,
   taskExecution: readonly Record<string, unknown>[],
+  expectedScope?: AuthorityScope,
 ): CurrentAuthorityRelationRow[] {
   if (state === undefined || state.relation_status !== "exact") return [];
   if (taskExecution.length !== 1) return [];
   const taskRelation = taskExecution[0];
   if (taskRelation === undefined) return [];
+
+  let scope: AuthorityScope;
+  try {
+    scope = scopeFromRow(state);
+    const source = parseEntityUrn(taskRelation.source_entity_urn);
+    const target = parseEntityUrn(taskRelation.target_entity_urn);
+    const relationScope = scopeFromRow({ ...taskRelation, source_deployment_id: target.deploymentId });
+    if (!sameScope(scope, relationScope) || (expectedScope && !sameScope(scope, expectedScope)) ||
+      source.tenantId !== scope.tenantId || target.tenantId !== scope.tenantId ||
+      source.deploymentId !== scope.deploymentId || target.deploymentId !== scope.deploymentId ||
+      source.sourceSystem !== "smpp" || target.sourceSystem !== "smpp" ||
+      state.source_system !== "smpp" || taskRelation.source_system !== "smpp" || taskRelation.target_system !== "smpp" ||
+      source.entityType !== "task" || target.entityType !== "execution" ||
+      taskRelation.source_entity_type !== "task" || taskRelation.target_entity_type !== "execution" ||
+      source.entityId !== state.task_id || target.entityId !== state.external_execution_id)
+      return [];
+    // Mission entity refs are provenance and must describe the same canonical scope.
+    const refs: unknown = JSON.parse(rowString(state, "entity_refs_json"));
+    if (!Array.isArray(refs)) return [];
+    for (const [entityType, localId] of [["task", state.task_id], ["execution", state.external_execution_id]]) {
+      const matches = refs.filter((ref: unknown) => ref && typeof ref === "object" && "entityType" in ref && ref.entityType === entityType);
+      if (matches.length !== 1) return [];
+      const ref = matches[0] as Record<string, unknown>;
+      if (ref.localId !== localId || typeof localId !== "string" || ref.urn !== scopedEntityUrn(scope, entityType as string, localId)) return [];
+      parseEntityUrn(ref.urn);
+    }
+  } catch { return []; }
 
   const taskId = rowString(state, "task_id");
   const executionId = rowString(state, "external_execution_id");
@@ -235,18 +256,8 @@ export function convergeCurrentExecutionMission(
   )
     return [];
 
-  const sourceEntityUrn = entityUrn(
-    tenantId,
-    deploymentId,
-    "execution",
-    executionId,
-  );
-  const targetEntityUrn = entityUrn(
-    tenantId,
-    deploymentId,
-    "device_mission",
-    deviceMissionId,
-  );
+  const sourceEntityUrn = scopedEntityUrn(scope, "execution", executionId);
+  const targetEntityUrn = scopedEntityUrn(scope, "device_mission", deviceMissionId);
   const projectedAt =
     observationTime(taskProjectedAt) > observationTime(missionProjectedAt)
       ? taskProjectedAt

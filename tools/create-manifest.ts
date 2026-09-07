@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { join } from 'node:path';
 
-async function walk(path) {
+async function walk(path: string): Promise<string[]> {
   const output = [];
   for (const entry of await readdir(path, { withFileTypes: true })) {
     if (['var', 'node_modules', '.git'].includes(entry.name)) continue;
@@ -66,7 +66,7 @@ const manifest = {
     targetHostGitHubAccessRequired: false
   },
   automatedVerification: {
-    sourceRegressionCommand: 'pnpm test',
+    sourceRegressionCommand: 'npm test',
     composeValidationCommand: 'docker compose config --quiet',
     targetHostBinaryGate: 'docker compose run --rm --no-deps --entrypoint clickhouse clickhouse --version',
     packageIntegrityCommand: 'sha256sum -c SHA256SUMS.txt'

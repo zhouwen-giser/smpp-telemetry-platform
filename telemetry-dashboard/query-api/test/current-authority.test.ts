@@ -7,6 +7,8 @@ import {
   selectCurrentMissionAuthority,
   type MissionAuthorityObservation,
 } from "../src/current-authority.js";
+import { authorityScope, exactRow, taskExecutionRow } from "./query-fixtures.js";
+import { scopedEntityUrn, parseEntityUrn, scopeFromRow } from "../src/scope.js";
 
 const exact: MissionAuthorityObservation = {
   taskId: "task-1",
@@ -15,31 +17,6 @@ const exact: MissionAuthorityObservation = {
   recordId: "record-a",
   relationStatus: "exact",
   deviceMissionId: "mission-7",
-};
-
-const exactRow = {
-  record_id: "record-a",
-  source_record_hash: "a".repeat(64),
-  fact_id: "11111111-1111-5111-8111-111111111111",
-  tenant_id: "qualification",
-  source_deployment_id: "smpp-runtime-sync-v0.1",
-  task_id: "task-1",
-  external_execution_id: "execution-1",
-  observed_at: "2026-08-31 12:00:00.000",
-  projected_at: "2026-08-31 12:00:01.000",
-  relation_status: "exact",
-  device_mission_id: "mission-7",
-};
-
-const taskExecutionRow = {
-  relation_id: "task-execution-1",
-  relation_type: "task_execution_binding",
-  source_entity_id: "task-1",
-  target_entity_id: "execution-1",
-  binding_source: "smpp_runtime_reconciliation_found",
-  confidence_class: "authoritative",
-  source_record_id: "binding-record",
-  projected_at: "2026-08-31 12:00:02.000",
 };
 
 function state(
@@ -98,13 +75,55 @@ test("replaying an identical observation is idempotent and divergent reuse fails
 });
 
 test("shared SQL selects Provider observedAt plus stable recordId and all convergence evidence", () => {
-  const stateSql = currentMissionStateSql("task-1", "execution-1");
+  const stateSql = currentMissionStateSql("task-1", "execution-1", authorityScope);
   assert.match(stateSql, /ORDER BY observed_at DESC,record_id DESC/u);
   assert.match(stateSql, /external_provider_fact FINAL/u);
   assert.match(stateSql, /source_record_hash/u);
   assert.match(stateSql, /toString\(fact_id\) AS fact_id/u);
   assert.match(stateSql, /source_deployment_id/u);
-  assert.match(currentTaskExecutionSql("task-1", "execution-1"), /projected_at/u);
+  assert.match(currentTaskExecutionSql("task-1", "execution-1", authorityScope), /projected_at/u);
+});
+
+test("each tenant, project, environment, source and deployment boundary rejects cross-scope joins", () => {
+  for (const column of ["tenant_id", "project_id", "environment", "smpp_source_id"] as const) {
+    assert.deepEqual(convergeCurrentExecutionMission(exactRow, [{ ...taskExecutionRow, [column]: "other" }]), [], column);
+    assert.deepEqual(convergeCurrentExecutionMission({ ...exactRow, [column]: "" }, [taskExecutionRow]), [], column);
+  }
+  for (const field of ["tenantId", "deploymentId"] as const) {
+    const other = { ...authorityScope, [field]: "other" };
+    assert.deepEqual(convergeCurrentExecutionMission(exactRow, [{ ...taskExecutionRow, source_entity_urn: scopedEntityUrn(other, "task", "task-1"), target_entity_urn: scopedEntityUrn(other, "execution", "execution-1") }]), []);
+  }
+  assert.deepEqual(convergeCurrentExecutionMission(exactRow, [taskExecutionRow], { ...authorityScope, projectId: "other" }), []);
+});
+
+test("URN scope, entity type, system and canonical encoding must agree with row identities", () => {
+  for (const source_entity_urn of [
+    taskExecutionRow.source_entity_urn.replace(":smpp:", ":sdar:"),
+    taskExecutionRow.source_entity_urn.replace(":task:", ":execution:"),
+    taskExecutionRow.source_entity_urn.replace("task-1", "task-2"),
+    taskExecutionRow.source_entity_urn.replace("task-1", "%74ask-1"),
+    taskExecutionRow.source_entity_urn + "%ZZ",
+  ]) assert.deepEqual(convergeCurrentExecutionMission(exactRow, [{ ...taskExecutionRow, source_entity_urn }]), []);
+  for (const field of ["source_system", "target_system"]) assert.deepEqual(convergeCurrentExecutionMission(exactRow, [{ ...taskExecutionRow, [field]: "sdar" }]), []);
+  assert.deepEqual(convergeCurrentExecutionMission({ ...exactRow, entity_refs_json: "[]" }, [taskExecutionRow]), []);
+  assert.deepEqual(convergeCurrentExecutionMission({ ...exactRow, entity_refs_json: exactRow.entity_refs_json.replace("task-1", "task-2") }, [taskExecutionRow]), []);
+  assert.deepEqual(convergeCurrentExecutionMission(exactRow, [taskExecutionRow, taskExecutionRow]), []);
+});
+
+test("scoped SQL fixes five Mission dimensions and exact relation URNs without a nonexistent deployment column", () => {
+  const missionSql = currentMissionStateSql("task-1", "execution-1", authorityScope);
+  const relationSql = currentTaskExecutionSql("task-1", "execution-1", authorityScope);
+  for (const [column, value] of Object.entries({ tenant_id: authorityScope.tenantId, project_id: authorityScope.projectId, environment: authorityScope.environment, smpp_source_id: authorityScope.smppSourceId })) {
+    assert.ok(missionSql.includes(`${column}='${value}'`)); assert.ok(relationSql.includes(`${column}='${value}'`));
+  }
+  assert.ok(missionSql.includes(`source_deployment_id='${authorityScope.deploymentId}'`));
+  assert.ok(!relationSql.includes("source_deployment_id"));
+  assert.ok(relationSql.includes(`source_entity_urn='${taskExecutionRow.source_entity_urn}'`));
+  assert.ok(relationSql.includes(`target_entity_urn='${taskExecutionRow.target_entity_urn}'`));
+  assert.ok(!relationSql.includes("runtime_instance_id"));
+  assert.deepEqual(scopeFromRow(exactRow), authorityScope);
+  const encoded = scopedEntityUrn({ ...authorityScope, tenantId: "租户:一" }, "task", "模拟/任务:1");
+  assert.equal(parseEntityUrn(encoded).entityId, "模拟/任务:1");
 });
 
 test("Mission-first converges after Task→Execution arrives using the selected evidence fact", () => {

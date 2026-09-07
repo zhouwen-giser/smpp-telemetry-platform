@@ -1,8 +1,11 @@
-function varint(buffer, state) {
+import type { DecodedOtlpLog, OtlpScope } from './otlp-types.js';
+interface ParseState { offset: number }
+type ProtobufField = { number: number; wire: 0; value: bigint } | { number: number; wire: 1 | 2 | 5; value: Buffer };
+function varint(buffer: Buffer, state: ParseState): bigint {
   let value = 0n;
   let shift = 0n;
   while (state.offset < buffer.length) {
-    const byte = buffer[state.offset++];
+    const byte = buffer[state.offset++]!;
     value |= BigInt(byte & 0x7f) << shift;
     if ((byte & 0x80) === 0) return value;
     shift += 7n;
@@ -11,7 +14,7 @@ function varint(buffer, state) {
   throw new Error('PROTO_TRUNCATED_VARINT');
 }
 
-function bytes(buffer, state) {
+function bytes(buffer: Buffer, state: ParseState): Buffer {
   const length = Number(varint(buffer, state));
   const end = state.offset + length;
   if (!Number.isSafeInteger(length) || end > buffer.length) throw new Error('PROTO_TRUNCATED_BYTES');
@@ -20,7 +23,7 @@ function bytes(buffer, state) {
   return value;
 }
 
-function field(buffer, state) {
+function field(buffer: Buffer, state: ParseState): ProtobufField {
   const tag = Number(varint(buffer, state));
   const number = tag >>> 3;
   const wire = tag & 7;
@@ -40,13 +43,13 @@ function field(buffer, state) {
   throw new Error(`PROTO_UNSUPPORTED_WIRE_${wire}`);
 }
 
-function parseMessage(buffer, handler) {
+function parseMessage(buffer: Buffer, handler: (field: ProtobufField) => void): void {
   const state = { offset: 0 };
   while (state.offset < buffer.length) handler(field(buffer, state));
 }
 
-function decodeAnyValue(buffer) {
-  let output = null;
+function decodeAnyValue(buffer: Buffer): unknown {
+  let output: unknown = null;
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 2) output = f.value.toString('utf8');
     else if (f.number === 2 && f.wire === 0) output = f.value !== 0n;
@@ -61,14 +64,14 @@ function decodeAnyValue(buffer) {
   return output;
 }
 
-function decodeArrayValue(buffer) {
-  const values = [];
+function decodeArrayValue(buffer: Buffer): unknown[] {
+  const values: unknown[] = [];
   parseMessage(buffer, (f) => { if (f.number === 1 && f.wire === 2) values.push(decodeAnyValue(f.value)); });
   return values;
 }
 
-function decodeKeyValue(buffer) {
-  let key = ''; let value = null;
+function decodeKeyValue(buffer: Buffer): [string, unknown] {
+  let key = ''; let value: unknown = null;
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 2) key = f.value.toString('utf8');
     else if (f.number === 2 && f.wire === 2) value = decodeAnyValue(f.value);
@@ -76,22 +79,22 @@ function decodeKeyValue(buffer) {
   return [key, value];
 }
 
-function decodeKeyValueList(buffer) {
-  const output = {};
+function decodeKeyValueList(buffer: Buffer): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
   parseMessage(buffer, (f) => { if (f.number === 1 && f.wire === 2) { const [k, v] = decodeKeyValue(f.value); output[k] = v; } });
   return output;
 }
 
-function decodeAttributes(buffer) {
-  const output = {};
+function decodeAttributes(buffer: Buffer): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
   parseMessage(buffer, (f) => { if (f.number === 1 && f.wire === 2) { const [k, v] = decodeKeyValue(f.value); output[k] = v; } });
   return output;
 }
 
-function fixed64ToString(value) { return value.readBigUInt64LE(0).toString(); }
+function fixed64ToString(value: Buffer): string { return value.readBigUInt64LE(0).toString(); }
 
-function decodeLogRecord(buffer, resource, scope) {
-  const output = { resource, scope, eventName: '', body: null, attributes: {}, timeUnixNano: '0', traceId: '', spanId: '' };
+function decodeLogRecord(buffer: Buffer, resource: Record<string, unknown>, scope: OtlpScope): DecodedOtlpLog {
+  const output: DecodedOtlpLog = { resource, scope, eventName: '', body: null, attributes: {}, timeUnixNano: '0', traceId: '', spanId: '' };
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 1) output.timeUnixNano = fixed64ToString(f.value);
     else if (f.number === 5 && f.wire === 2) output.body = decodeAnyValue(f.value);
@@ -103,7 +106,7 @@ function decodeLogRecord(buffer, resource, scope) {
   return output;
 }
 
-function decodeScope(buffer) {
+function decodeScope(buffer: Buffer): OtlpScope {
   const output = { name: '', version: '' };
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 2) output.name = f.value.toString('utf8');
@@ -112,8 +115,8 @@ function decodeScope(buffer) {
   return output;
 }
 
-function decodeScopeLogs(buffer, resource) {
-  let scope = { name: '', version: '' }; const recordBuffers = [];
+function decodeScopeLogs(buffer: Buffer, resource: Record<string, unknown>): DecodedOtlpLog[] {
+  let scope = { name: '', version: '' }; const recordBuffers: Buffer[] = [];
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 2) scope = decodeScope(f.value);
     else if (f.number === 2 && f.wire === 2) recordBuffers.push(f.value);
@@ -121,10 +124,10 @@ function decodeScopeLogs(buffer, resource) {
   return recordBuffers.map((record) => decodeLogRecord(record, resource, scope));
 }
 
-function decodeResource(buffer) { return decodeAttributes(buffer); }
+function decodeResource(buffer: Buffer): Record<string, unknown> { return decodeAttributes(buffer); }
 
-function decodeResourceLogs(buffer) {
-  let resource = {}; const scopes = [];
+function decodeResourceLogs(buffer: Buffer): DecodedOtlpLog[] {
+  let resource: Record<string, unknown> = {}; const scopes: Buffer[] = [];
   parseMessage(buffer, (f) => {
     if (f.number === 1 && f.wire === 2) resource = decodeResource(f.value);
     else if (f.number === 2 && f.wire === 2) scopes.push(f.value);
@@ -132,15 +135,14 @@ function decodeResourceLogs(buffer) {
   return scopes.flatMap((scope) => decodeScopeLogs(scope, resource));
 }
 
-export function decodeOtlpProtobuf(buffer) {
-  const records = [];
+export function decodeOtlpProtobuf(buffer: Buffer): DecodedOtlpLog[] {
+  const records: DecodedOtlpLog[] = [];
   parseMessage(buffer, (f) => { if (f.number === 1 && f.wire === 2) records.push(...decodeResourceLogs(f.value)); });
   return records;
 }
 
-export function encodePartialSuccess(rejected, message = '') {
-  const parts = [];
-  const pushVarint = (n) => { let v = BigInt(n); const out=[]; do { let b=Number(v & 0x7fn); v >>= 7n; if(v) b|=0x80; out.push(b); } while(v); return Buffer.from(out); };
+export function encodePartialSuccess(rejected: number, message = ''): Buffer {
+  const pushVarint = (n: number): Buffer => { let v = BigInt(n); const out=[]; do { let b=Number(v & 0x7fn); v >>= 7n; if(v) b|=0x80; out.push(b); } while(v); return Buffer.from(out); };
   const field1 = Buffer.concat([Buffer.from([0x08]), pushVarint(rejected)]);
   const msg = Buffer.from(message, 'utf8');
   const field2 = msg.length ? Buffer.concat([Buffer.from([0x12]), pushVarint(msg.length), msg]) : Buffer.alloc(0);
