@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "targets": [{
+    "targetId": "standalone-rebuild",
+    "generation": "rebuild-20260907",
+    "targetType": "standalone_smpp_clickhouse",
+    "enabled": true,
+    "required": true,
+    "acceptAllMappings": true,
+    "snapshotEnabled": true,
+    "writeLayers": ["landing", "normalized", "core", "relation"],
+    "connection": {"url": "http://replay-clickhouse:8123", "user": "telemetry_projection_writer", "passwordFile": "/run/secrets/replay_clickhouse_password"},
+    "tableMap": {}
+  }]
+}

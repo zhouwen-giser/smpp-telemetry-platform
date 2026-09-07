@@ -1,4 +1,3 @@
-// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {calculateProviderOpsRecordHash} from '../src/packages/canonical/canonical.js';
@@ -6,8 +5,8 @@ import {normalizeProviderCorrelation} from '../src/packages/validation/provider-
 import {validateEnvelope} from '../src/packages/validation/validation.js';
 import {envelope,logRecord} from './helpers.js';
 
-function validate(e){return validateEnvelope(e,logRecord(e).attributes);}
-function changed(overrides){const e=envelope(overrides);e.recordHash=calculateProviderOpsRecordHash(e);return e;}
+function validate(e:Record<string,unknown>){return validateEnvelope(e,logRecord(e).attributes);}
+function changed<T extends Record<string,unknown>>(overrides:T){const e=envelope(overrides);e.recordHash=calculateProviderOpsRecordHash(e);return e;}
 
 test('canonical origin claims are bounded, deduplicated and stable-sorted',()=>{
   const e=changed({attributes:{correlation:{originSystem:'sdar',originDeploymentId:'dep-1',originTaskIds:['b','a','b'],originInvocationIds:['i-1']}}});
@@ -34,7 +33,7 @@ test('origin identity requires system and SDAR deployment',()=>{
 });
 
 test('provider-local identity and event time fail closed',()=>{
-  const task=envelope();delete task.taskId;task.recordHash=calculateProviderOpsRecordHash(task);
+  const {taskId:_omittedTaskId,...task}=envelope();task.recordHash=calculateProviderOpsRecordHash(task);
   assert.equal(validate(task).code,'PROVIDER_LOCAL_IDENTITY_MISSING');
   const backwards=changed({occurredAt:'2026-07-18T03:12:11.000Z',emittedAt:'2026-07-18T03:12:10.000Z'});
   assert.equal(validate(backwards).code,'SMPP_EVENT_TIME_INVALID');

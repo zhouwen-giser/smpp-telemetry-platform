@@ -1,3 +1,5 @@
+import { isRecord } from '../../../../packages/telemetry-types/src/index.js';
+import { validTelemetryTimestamp } from './timestamp.js';
 import { calculateProviderOpsRecordHash } from '../canonical/canonical.js';
 
 const UNCERTAINTY_CLASSES = new Set([
@@ -18,49 +20,49 @@ const EVIDENCE_KINDS = new Set(['position', 'speed', 'mission', 'state', 'health
 const MISSION_STATUSES = new Set(['exact', 'unresolved', 'conflict']);
 const RUNTIME_AUTHORITY_INSTANCE = 'smpp-runtime-postgres-authority';
 
-function fail(code) {
+function fail(code:string):never {
   throw Object.assign(new Error(code), {code});
 }
 
-function object(value, code) {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(code);
+function object(value:unknown, code:string):Record<string,unknown> {
+  if (!isRecord(value)) fail(code);
   return value;
 }
 
-function string(value, code) {
+function string(value:unknown, code:string):string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 512) fail(code);
   return value;
 }
 
-function optionalString(value, code) {
+function optionalString(value:unknown, code:string):string|null {
   if (value === null || value === undefined) return null;
   return string(value, code);
 }
 
-function utc(value, code) {
+function utc(value:unknown, code:string):string {
   const result = string(value, code);
-  if (Number.isNaN(Date.parse(result))) fail(code);
+  if (!validTelemetryTimestamp(result)) fail(code);
   return result;
 }
 
-function stringArray(value, code) {
+function stringArray(value:unknown, code:string):string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || item.length === 0)) {
     fail(code);
   }
-  return [...value];
+  return value.filter((item):item is string=>typeof item==='string');
 }
 
-function enumValue(value, allowed, code) {
+function enumValue(value:unknown, allowed:ReadonlySet<string>, code:string):string {
   const result = string(value, code);
   if (!allowed.has(result)) fail(code);
   return result;
 }
 
-function same(left, right, code) {
+function same(left:unknown, right:unknown, code:string):void {
   if (left !== right) fail(code);
 }
 
-function commonTaskIdentity(envelope, payload) {
+function commonTaskIdentity(envelope:Record<string,unknown>, payload:Record<string,unknown>) {
   const taskId = string(envelope.taskId, 'SMPP_RUNTIME_TASK_ID_REQUIRED');
   if (payload.taskId !== undefined) same(payload.taskId, taskId, 'SMPP_RUNTIME_TASK_ID_MISMATCH');
   if (payload.operationName !== undefined) {
@@ -72,7 +74,7 @@ function commonTaskIdentity(envelope, payload) {
   return taskId;
 }
 
-function externalExecutionIdentity(envelope, payload, required) {
+function externalExecutionIdentity(envelope:Record<string,unknown>, payload:Record<string,unknown>, required:boolean) {
   const topLevel = optionalString(envelope.externalExecutionId, 'SMPP_RUNTIME_EXECUTION_ID_INVALID');
   const nested = optionalString(payload.externalExecutionId, 'SMPP_RUNTIME_EXECUTION_ID_INVALID');
   if (topLevel !== null && nested !== null) same(nested, topLevel, 'SMPP_RUNTIME_EXECUTION_ID_MISMATCH');
@@ -81,11 +83,11 @@ function externalExecutionIdentity(envelope, payload, required) {
   return result;
 }
 
-function committedRuntime(envelope, attributes) {
+function committedRuntime(envelope:Record<string,unknown>, attributes:Record<string,unknown>) {
   return attributes.source === 'committed_postgres' && envelope.instanceId === RUNTIME_AUTHORITY_INSTANCE;
 }
 
-function assertNoEvaluationVerdict(attributes, payload) {
+function assertNoEvaluationVerdict(attributes:Record<string,unknown>, payload:Record<string,unknown>) {
   for (const key of [...Object.keys(attributes), ...Object.keys(payload)]) {
     if (/^(goalAchieved|physicalSuccess|benchmarkPass|score)$/i.test(key)) {
       fail('SMPP_RUNTIME_EVALUATION_VERDICT_FORBIDDEN');
@@ -93,7 +95,18 @@ function assertNoEvaluationVerdict(attributes, payload) {
   }
 }
 
-export function inspectSmppRuntimeSemantic(envelope) {
+export interface RuntimeSemantic {
+  capabilityIds:string[];
+  binding:{taskId:string;externalExecutionId:string|null;bindingSource:string}|null;
+  uncertainty:{taskId:string;operationName:string;argumentHash:string;uncertaintyClass:string;redispatchAllowed:boolean;occurredAt:string;causalRefs:string[]}|null;
+  reconciliation:{taskId:string;attempt:number;status:string;externalExecutionId:string|null;identityValidated:boolean;occurredAt:string}|null;
+  businessTerminal:{taskId:string;mcpTaskStatus:string;businessStatus:string;transportStatus:string;providerExecutionStatus:string;isError:boolean}|null;
+  evidence:{kind:string;taskId:string;externalExecutionId:string;resourceId:string;deviceMissionId:string|null;observedAt:string}|null;
+  missionRelation:{taskId:string;externalExecutionId:string;relationStatus:string;deviceMissionId:string|null;sourceRecordRefs:string[];observedAt:string}|null;
+  observedAt:string|null;
+  readiness:{status:string;reasonCodes:string[]};
+}
+export function inspectSmppRuntimeSemantic(envelope:Record<string,unknown>):Readonly<RuntimeSemantic> {
   const attributes = object(envelope.attributes ?? {}, 'SMPP_RUNTIME_ATTRIBUTES_INVALID');
   const payload = object(envelope.payload ?? {}, 'SMPP_RUNTIME_PAYLOAD_INVALID');
   assertNoEvaluationVerdict(attributes, payload);
@@ -113,7 +126,7 @@ export function inspectSmppRuntimeSemantic(envelope) {
   const isEvidence = evidenceKind !== undefined;
   const isMissionRelation = factKind !== undefined;
 
-  const result = {
+  const result:RuntimeSemantic = {
     capabilityIds: [],
     binding: null,
     uncertainty: null,
@@ -121,7 +134,7 @@ export function inspectSmppRuntimeSemantic(envelope) {
     businessTerminal: null,
     evidence: null,
     missionRelation: null,
-    observedAt: envelope.emittedAt,
+    observedAt: typeof envelope.emittedAt==='string'?envelope.emittedAt:null,
     readiness: {status: 'not_required', reasonCodes: []}
   };
 
@@ -157,7 +170,7 @@ export function inspectSmppRuntimeSemantic(envelope) {
         !committedRuntime(envelope, attributes)) fail('SMPP_RECONCILIATION_AUTHORITY_INVALID');
     const taskId = commonTaskIdentity(envelope, payload);
     const status = enumValue(payload.status, RECONCILIATION_STATUSES, 'SMPP_RECONCILIATION_STATUS_INVALID');
-    if (!Number.isSafeInteger(payload.attempt) || payload.attempt < 1) fail('SMPP_RECONCILIATION_ATTEMPT_INVALID');
+    if (typeof payload.attempt!=='number' || !Number.isSafeInteger(payload.attempt) || payload.attempt < 1) fail('SMPP_RECONCILIATION_ATTEMPT_INVALID');
     const externalExecutionId = externalExecutionIdentity(envelope, payload, status === 'found');
     if (typeof payload.identityValidated !== 'boolean') fail('SMPP_RECONCILIATION_IDENTITY_VALIDATION_REQUIRED');
     if (status === 'found' && payload.identityValidated !== true) fail('SMPP_RECONCILIATION_FOUND_IDENTITY_INVALID');
@@ -204,7 +217,7 @@ export function inspectSmppRuntimeSemantic(envelope) {
     const resourceId = string(envelope.resourceId, 'SMPP_PROVIDER_EVIDENCE_RESOURCE_ID_REQUIRED');
     string(envelope.providerId, 'SMPP_PROVIDER_EVIDENCE_PROVIDER_ID_REQUIRED');
     string(envelope.providerEventId, 'SMPP_PROVIDER_EVIDENCE_RECORD_ID_REQUIRED');
-    if (!Number.isSafeInteger(envelope.providerEventSequence) || envelope.providerEventSequence < 0) {
+    if (typeof envelope.providerEventSequence!=='number' || !Number.isSafeInteger(envelope.providerEventSequence) || envelope.providerEventSequence < 0) {
       fail('SMPP_PROVIDER_EVIDENCE_SEQUENCE_INVALID');
     }
     const observedAt = utc(envelope.occurredAt, 'SMPP_PROVIDER_EVIDENCE_TIME_INVALID');
@@ -262,20 +275,20 @@ export function inspectSmppRuntimeSemantic(envelope) {
   return Object.freeze(result);
 }
 
-export function validateSmppRuntimeSemantic(envelope) {
+export function validateSmppRuntimeSemantic(envelope:Record<string,unknown>):{ok:true}|{ok:false;code:string;message:string} {
   try {
     inspectSmppRuntimeSemantic(envelope);
     return {ok: true};
   } catch (error) {
-    return {ok: false, code: error?.code ?? 'SMPP_RUNTIME_SEMANTIC_INVALID', message: error?.message};
+    return {ok:false,code:isRecord(error)&&typeof error.code==='string'?error.code:'SMPP_RUNTIME_SEMANTIC_INVALID',message:error instanceof Error?error.message:'SMPP_RUNTIME_SEMANTIC_INVALID'};
   }
 }
 
 // OTLP AnyValue has no JSON null variant. The Producer record hash is over the
 // original envelope, so restore only frozen nullable fields and only when the
 // cryptographic record hash proves the reconstruction is exact.
-export function restoreSmppRuntimeTransportSemantics(envelope) {
-  if (envelope === null || typeof envelope !== 'object' || Array.isArray(envelope)) return envelope;
+export function restoreSmppRuntimeTransportSemantics(envelope:unknown):unknown {
+  if (!isRecord(envelope)) return envelope;
   try {
     if (calculateProviderOpsRecordHash(envelope) === envelope.recordHash) return envelope;
   } catch {
@@ -284,9 +297,8 @@ export function restoreSmppRuntimeTransportSemantics(envelope) {
   const candidate = structuredClone(envelope);
   const attributes = candidate.attributes;
   const payload = candidate.payload;
-  if (attributes === null || typeof attributes !== 'object' || Array.isArray(attributes) ||
-      payload === null || typeof payload !== 'object' || Array.isArray(payload)) return envelope;
-  const nullIfTransportEmpty = (key) => {
+  if (!isRecord(attributes)||!isRecord(payload)) return envelope;
+  const nullIfTransportEmpty = (key:string) => {
     if (!(key in payload) || payload[key] === '') payload[key] = null;
   };
   if (attributes.semantic === 'task.reconciliation' &&
@@ -294,8 +306,7 @@ export function restoreSmppRuntimeTransportSemantics(envelope) {
     nullIfTransportEmpty('simulationId');
     if (payload.status !== 'found') nullIfTransportEmpty('externalExecutionId');
   }
-  if (candidate.recordType === 'provider.task.lifecycle' &&
-      ['transportStatus','mcpTaskStatus','businessStatus','providerExecutionStatus'].some((key) => key in payload)) {
+  if (candidate.recordType === 'provider.task.lifecycle') {
     for (const key of ['previousState','previousSubstate','currentSubstate','reasonCode','resultClass']) {
       nullIfTransportEmpty(key);
     }

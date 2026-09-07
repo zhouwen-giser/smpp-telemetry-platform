@@ -1,0 +1,11 @@
+{
+  "idempotencyKey": "replace-with-a-unique-rebuild-id",
+  "generation": "rebuild-20260907",
+  "targetIds": ["standalone-rebuild"],
+  "fromSequence": 1,
+  "throughSequence": 1,
+  "normalizerVersion": 4,
+  "projectionVersion": 1,
+  "mappingVersion": 4,
+  "policyVersion": 1
+}

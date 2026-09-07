@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {WalStore} from '../src/packages/wal/wal.js';import {TelemetryProcessor} from '../src/apps/processor.js';import {Metrics} from '../src/packages/metrics/metrics.js';import {envelope,logRecord,mapping} from './helpers.js';async function setup({walOptions={},processorOptions={}}={}){const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'proc-')),...walOptions});await wal.initialize();const mappings={resolve:()=>mapping};return{wal,p:new TelemetryProcessor({wal,mappings,metrics:new Metrics(),allowedCollectorIds:['smpp-gateway-1'],...processorOptions})};}test('accept, duplicate and conflict',async()=>{const {p}=await setup(),e=envelope();assert.equal((await p.collect(logRecord(e))).status,'accepted');assert.equal((await p.collect(logRecord(e))).status,'duplicate');const c=envelope({payload:{currentState:'failed'}});assert.equal((await p.collect(logRecord(c))).status,'conflict');});test('rejects forged collector identity',async()=>{const {p}=await setup();assert.equal((await p.collect(logRecord(envelope(),{resource:{'telemetry.source.collector_id':'evil'}}))).errorCode,'COLLECTOR_ID_NOT_ALLOWED');});test('stores only a safe rejection summary for secret-bearing input',async()=>{const {p,wal}=await setup(),e=envelope({payload:{password:'secret-do-not-store'}});e.recordHash=(await import('../src/packages/canonical/canonical.js')).calculateProviderOpsRecordHash(e);assert.equal((await p.collect(logRecord(e))).errorCode,'SENSITIVE_KEY_DETECTED');assert.equal(wal.entries.length,1);assert.equal(wal.entries[0].record.kind,'rejected');assert.doesNotMatch(JSON.stringify(wal.entries[0].record),/secret-do-not-store/);});
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {WalStore} from '../src/packages/wal/wal.js';import {TelemetryProcessor} from '../src/apps/processor.js';import {Metrics} from '../src/packages/metrics/metrics.js';import {envelope,logRecord,mapping,at} from './helpers.js';async function setup({walOptions={},processorOptions={}}={}){const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'proc-')),...walOptions});await wal.initialize();const mappings={resolve:()=>mapping};return{wal,p:new TelemetryProcessor({wal,mappings,metrics:new Metrics(),allowedCollectorIds:['smpp-gateway-1'],...processorOptions})};}test('accept, duplicate and conflict',async()=>{const {p}=await setup(),e=envelope();assert.equal((await p.collect(logRecord(e))).status,'accepted');assert.equal((await p.collect(logRecord(e))).status,'duplicate');const c=envelope({payload:{currentState:'failed'}});assert.equal((await p.collect(logRecord(c))).status,'conflict');});test('rejects forged collector identity',async()=>{const {p}=await setup();assert.equal((await p.collect(logRecord(envelope(),{resource:{'telemetry.source.collector_id':'evil'}}))).errorCode,'COLLECTOR_ID_NOT_ALLOWED');});test('stores only a safe rejection summary for secret-bearing input',async()=>{const {p,wal}=await setup(),e=envelope({payload:{password:'secret-do-not-store'}});e.recordHash=(await import('../src/packages/canonical/canonical.js')).calculateProviderOpsRecordHash(e);assert.equal((await p.collect(logRecord(e))).errorCode,'SENSITIVE_KEY_DETECTED');assert.equal(wal.entries.length,1);assert.equal(at(wal.entries,0).record.kind,'rejected');assert.doesNotMatch(JSON.stringify(at(wal.entries,0).record),/secret-do-not-store/);});
 
 test('concurrent identical records cross one atomic deduplication boundary',async()=>{
   const {p,wal}=await setup(),e=envelope();
@@ -6,7 +6,7 @@ test('concurrent identical records cross one atomic deduplication boundary',asyn
   assert.equal(results.filter(result=>result.status==='accepted').length,1);
   assert.equal(results.filter(result=>result.status==='duplicate').length,19);
   assert.equal(wal.entries.length,1);
-  assert.equal(wal.entries[0].record.kind,'accepted');
+  assert.equal(at(wal.entries,0).record.kind,'accepted');
 });
 
 test('concurrent same-ID different-hash records isolate one conflict',async()=>{
@@ -14,8 +14,8 @@ test('concurrent same-ID different-hash records isolate one conflict',async()=>{
   const results=await Promise.all([p.collect(logRecord(accepted)),p.collect(logRecord(different))]);
   assert.deepEqual(results.map(result=>result.status),['accepted','conflict']);
   assert.deepEqual(wal.entries.map(entry=>entry.record.kind),['accepted','conflict']);
-  assert.equal(wal.entries[1].record.acceptedRecordHash,accepted.recordHash);
-  assert.equal(wal.entries[1].offset,wal.entries[0].offsetEnd);
+  assert.equal(at(wal.entries,1).record.acceptedRecordHash,accepted.recordHash);
+  assert.equal(at(wal.entries,1).offset,at(wal.entries,0).offsetEnd);
 });
 
 test('concurrent records cannot bypass the WAL high-water limit',async()=>{

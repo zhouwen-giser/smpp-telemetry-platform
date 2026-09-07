@@ -1,3 +1,4 @@
+import {isRecord} from '../../packages/telemetry-types/src/index.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -143,7 +144,9 @@ test("new shared route consumes only new mapping snapshots and retains both chec
     wal = new WalStore({ directory: join(root, "wal") });
     await wal.initialize();
     assert.deepEqual(wal.stats().checkpoints, checkpoint);
-    assert.deepEqual(wal.entries[0].record.mapping.projectionRouteIds, [
+    const recovered = wal.entries[0];
+    assert.ok(recovered && isRecord(recovered.record.mapping));
+    assert.deepEqual(recovered.record.mapping.projectionRouteIds, [
       "standalone-smpp",
     ]);
     manager = managerFor(wal);

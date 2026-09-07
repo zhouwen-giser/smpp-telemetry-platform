@@ -1,4 +1,3 @@
-// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {calculateProviderOpsRecordHash} from '../src/packages/canonical/canonical.js';
@@ -7,13 +6,15 @@ import {inspectSmppRuntimeSemantic,restoreSmppRuntimeTransportSemantics} from '.
 import {SmppProviderOpsNormalizerV1} from '../src/packages/normalization/smpp-provider-ops-v1.js';
 import {CoreProjectionV1} from '../src/packages/projection/core-projection.js';
 import {SdarSharedWarehouseProjectionV1} from '../src/packages/projection/sdar-shared-warehouse-projection.js';
-import {mapping} from './helpers.js';
+import {mapping,at,defined} from './helpers.js';
+import {asTelemetryEntry} from '../src/packages/wal/wal.js';
+import {isRecord} from '../../packages/telemetry-types/src/index.js';
 
 const occurredAt = '2026-08-31T02:00:00.000Z';
 const emittedAt = '2026-08-31T02:00:00.100Z';
 
-function semanticEnvelope(overrides={}) {
-  const value = {
+function semanticEnvelope(overrides:Record<string,unknown>={}) {
+  const value:Record<string,unknown>&{recordHash:string;payload:Record<string,unknown>} = {
     schemaName: 'sdar.provider.ops.event',
     schemaVersion: '1.1.0',
     recordId: '22aebca3-a58a-4caf-9b93-ea906cf1076d',
@@ -43,7 +44,7 @@ function semanticEnvelope(overrides={}) {
   return value;
 }
 
-function otlp(envelope) {
+function otlp(envelope:Record<string,unknown>) {
   return {
     'sdar.schema.name': envelope.schemaName,
     'sdar.schema.version': envelope.schemaVersion,
@@ -52,18 +53,20 @@ function otlp(envelope) {
   };
 }
 
-function validate(envelope) {
+function validate(envelope:Record<string,unknown>) {
   return validateEnvelope(envelope, otlp(envelope));
 }
 
-function normalize(envelope) {
-  return new SmppProviderOpsNormalizerV1().normalize({record:{
-    kind:'accepted', envelope, mapping, receivedAt:'2026-08-31T02:00:01.000Z',
+function normalize(envelope:Record<string,unknown>) {
+  const record=asTelemetryEntry({record:{
+    kind:'accepted',sourceSystem:'smpp',envelope,mapping,receivedAt:'2026-08-31T02:00:01.000Z',
     trustedContext:{deploymentId:'smpp-prod-1',collectorId:'collector-1'}
-  }})[0];
+  },segment:1,offset:0,offsetEnd:1,walEpoch:'runtime-semantics-test',ingestSequence:1}).record;
+  assert.ok(record.kind==='accepted');
+  return at(new SmppProviderOpsNormalizerV1().normalize({record}),0);
 }
 
-function uncertainty(overrides={}) {
+function uncertainty(overrides:Record<string,unknown>={}) {
   return semanticEnvelope({
     recordType:'provider.recovery.lifecycle',
     eventCategory:'recovery.lifecycle',
@@ -82,7 +85,7 @@ function uncertainty(overrides={}) {
   });
 }
 
-function reconciliation(status, overrides={}) {
+function reconciliation(status:string, overrides:Record<string,unknown>={}) {
   const externalExecutionId = status === 'found' ? 'execution-1' : null;
   return semanticEnvelope({
     recordType:'provider.recovery.lifecycle',eventCategory:'recovery.lifecycle',
@@ -99,7 +102,7 @@ function reconciliation(status, overrides={}) {
   });
 }
 
-function mission(relationStatus, overrides={}) {
+function mission(relationStatus:string, overrides:Record<string,unknown>={}) {
   const exact = relationStatus === 'exact';
   return semanticEnvelope({
     recordType:'provider.execution.progress',eventCategory:'execution.progress',
@@ -125,6 +128,7 @@ test('durable uncertainty remains replay-safe and distinct from business failure
   const value=uncertainty();
   assert.deepEqual(validate(value),{ok:true});
   const semantic=inspectSmppRuntimeSemantic(value);
+  assert.ok(semantic.uncertainty);
   assert.equal(semantic.uncertainty.redispatchAllowed,false);
   assert.equal(semantic.businessTerminal,null);
   assert.deepEqual(semantic.readiness,{status:'not_ready',reasonCodes:['SMPP_DISPATCH_UNCERTAIN']});
@@ -139,15 +143,16 @@ test('reconciliation statuses stay distinct and only validated found creates an 
     const value=reconciliation(status);
     assert.deepEqual(validate(value),{ok:true});
     const semantic=inspectSmppRuntimeSemantic(value);
+    assert.ok(semantic.reconciliation);
     assert.equal(semantic.reconciliation.status,status);
     assert.equal(semantic.binding===null,status!=='found');
   }
   const found=normalize(reconciliation('found'));
   assert.equal(found.relations.length,1);
-  assert.equal(found.relations[0].relationType,'task_execution_binding');
-  assert.equal(found.relations[0].bindingSource,'smpp_runtime_reconciliation_found');
-  assert.equal(found.relations[0].confidenceClass,'authoritative');
-  assert.equal(found.relations[0].reconciliationProvenance.authority,true);
+  assert.equal(at(found.relations,0).relationType,'task_execution_binding');
+  assert.equal(at(found.relations,0).bindingSource,'smpp_runtime_reconciliation_found');
+  assert.equal(at(found.relations,0).confidenceClass,'authoritative');
+  assert.equal(at(found.relations,0).reconciliationProvenance.authority,true);
 });
 
 test('committed terminal fact preserves four axes without projecting an evaluation verdict',()=>{
@@ -176,13 +181,14 @@ test('provider evidence preserves physical observedAt and exact validated task/e
   assert.deepEqual(validate(value),{ok:true});
   const fact=normalize(value);
   assert.equal(fact.observedAt,occurredAt);
+  assert.ok(fact.payload.runtimeSemantic.evidence);
   assert.equal(fact.payload.runtimeSemantic.evidence.kind,'position');
   assert.equal(fact.payload.runtimeSemantic.evidence.externalExecutionId,'execution-1');
   assert.equal(fact.relations.length,0);
 });
 
 test('exact Mission identity creates deterministic Task→Execution→DeviceMission relations',()=>{
-  const taskBinding=normalize(reconciliation('found')).relations[0];
+  const taskBinding=at(normalize(reconciliation('found')).relations,0);
   const first=normalize(mission('exact'));
   const secondEnvelope=mission('exact',{recordId:'16f6abf8-387d-4a2e-8927-3ee011919f5f'});
   const second=normalize(secondEnvelope);
@@ -190,12 +196,12 @@ test('exact Mission identity creates deterministic Task→Execution→DeviceMiss
   assert.deepEqual(topology.map((item)=>item.relationType),[
     'task_execution_binding','execution_mission_binding'
   ]);
-  assert.equal(taskBinding.targetEntityUrn,first.relations[0].sourceEntityUrn);
+  assert.equal(taskBinding.targetEntityUrn,at(first.relations,0).sourceEntityUrn);
   assert.deepEqual(first.relations.map((item)=>item.relationId),second.relations.map((item)=>item.relationId));
-  const missionRef=first.entityRefs.find((item)=>item.entityType==='device_mission');
+  const missionRef=defined(first.entityRefs.find((item)=>item.entityType==='device_mission'));
   assert.equal(missionRef.localId,'mission-7');
   assert.ok(first.relations.every((item)=>item.evidenceFactIds.length===1));
-  assert.equal(first.relations[0].reconciliationProvenance.sourceRecordRefs[0],'provider-record-1');
+  assert.deepEqual(at(first.relations,0).reconciliationProvenance.sourceRecordRefs,['provider-record-1']);
 });
 
 test('unresolved and conflicting Mission facts are retained but never synthesize exact Mission relations',()=>{
@@ -205,6 +211,7 @@ test('unresolved and conflicting Mission facts are retained but never synthesize
     const fact=normalize(value);
     assert.equal(fact.entityRefs.some((item)=>item.entityType==='device_mission'),false);
     assert.deepEqual(fact.relations,[]);
+    assert.ok(fact.payload.runtimeSemantic.missionRelation);
     assert.equal(fact.payload.runtimeSemantic.missionRelation.deviceMissionId,null);
     assert.equal(fact.payload.runtimeSemantic.readiness.status,status==='conflict'?'conflict':'not_ready');
   }
@@ -220,8 +227,12 @@ test('core and shared projections retain authoritative relation provenance',()=>
   assert.deepEqual(relations.map((item)=>item.row.relation_type),['execution_mission_binding']);
   assert.ok(relations.every((item)=>item.row.confidence_class==='authoritative'));
   assert.ok(relations.every((item)=>item.row.source_record_hash===fact.sourceRecordHash));
-  assert.equal(shared[0].row.observed_at,occurredAt);
-  assert.equal(JSON.parse(shared[0].row.provenance_json).hintsUsedForAuthority,false);
+  assert.equal(at(shared,0).row.observed_at,occurredAt);
+  const provenanceJson=at(shared,0).row.provenance_json;
+  assert.ok(typeof provenanceJson==='string');
+  const provenance:unknown=JSON.parse(provenanceJson);
+  assert.ok(isRecord(provenance));
+  assert.equal(provenance.hintsUsedForAuthority,false);
 });
 
 test('OTLP null loss is restored only when the Producer record hash proves the exact envelope',()=>{
@@ -239,4 +250,21 @@ test('OTLP null loss is restored only when the Producer record hash proves the e
   const forged=structuredClone(transported);
   forged.payload.businessStatus='failed';
   assert.equal(restoreSmppRuntimeTransportSemantics(forged),forged);
+});
+
+test('OTLP null loss is restored for ordinary task lifecycle facts without four-axis fields',()=>{
+  const original=semanticEnvelope({
+    eventType:'task.started',
+    attributes:{source:'committed_postgres',eventType:'task.started'},
+    payload:{
+      previousState:'WAITING_START_CONFIRMATION',currentState:'TERMINAL_FAILED',
+      previousSubstate:'accepted',currentSubstate:null,reasonCode:'START_CONFIRMED',
+      resultClass:'technical_failure',terminal:true,status:'failed',observationRevision:17,
+      adapterRevision:17
+    }
+  });
+  const transported=structuredClone(original);
+  transported.payload.currentSubstate='';
+  assert.notEqual(calculateProviderOpsRecordHash(transported),original.recordHash);
+  assert.deepEqual(restoreSmppRuntimeTransportSemantics(transported),original);
 });

@@ -1,4 +1,4 @@
-// @ts-nocheck -- repository-wide strict typing debt is tracked separately; runtime tests are authoritative here.
+import { isRecord } from '../../../../packages/telemetry-types/src/index.js';
 export const PROVIDER_CORRELATION_POLICY_ID = 'smpp.providerops-correlation-policy/v1.1';
 export const PROVIDER_CORRELATION_POLICY_VERSION = 1;
 
@@ -20,22 +20,22 @@ const EVALUATION_KEYS = new Set([
   'baseline_id','comparisonId','comparison_id'
 ]);
 
-function fail(code) { throw Object.assign(new Error(code), { code }); }
-function object(value) { return value != null && typeof value === 'object' && !Array.isArray(value); }
-function optionalString(value, code, max = ORIGIN_ID_LIMIT) {
+function fail(code:string):never { throw Object.assign(new Error(code), { code }); }
+const object=isRecord;
+function optionalString(value:unknown, code:string, max = ORIGIN_ID_LIMIT):string|null {
   if (value == null) return null;
   if (typeof value !== 'string' || value.length === 0 || value.length > max) fail(code);
   return value;
 }
-function originArray(value) {
+function originArray(value:unknown):string[] {
   if (value == null) return [];
   if (!Array.isArray(value)) fail('SMPP_ORIGIN_METADATA_INVALID');
   if (value.length > ORIGIN_ARRAY_LIMIT) fail('SMPP_ORIGIN_METADATA_TOO_LARGE');
-  const normalized=[];
-  for (const item of value) normalized.push(optionalString(item,'SMPP_ORIGIN_METADATA_INVALID'));
+  const normalized:string[]=[];
+  for (const item of value) {const id=optionalString(item,'SMPP_ORIGIN_METADATA_INVALID');if(id===null)fail('SMPP_ORIGIN_METADATA_INVALID');normalized.push(id);}
   return [...new Set(normalized)].sort();
 }
-function scanForbiddenEvaluationIdentity(value, depth = 0) {
+function scanForbiddenEvaluationIdentity(value:unknown, depth = 0):void {
   if (depth > 12 || value == null) return;
   if (Array.isArray(value)) {
     for (const item of value) scanForbiddenEvaluationIdentity(item, depth + 1);
@@ -50,7 +50,7 @@ function scanForbiddenEvaluationIdentity(value, depth = 0) {
   }
 }
 
-export function normalizeProviderCorrelation(envelope) {
+export function normalizeProviderCorrelation(envelope:Record<string,unknown>) {
   scanForbiddenEvaluationIdentity(envelope);
   const attributes=object(envelope.attributes)?envelope.attributes:{};
   if ([...LEGACY_ORIGIN_KEYS].some((key)=>key in attributes)) fail('SMPP_ORIGIN_METADATA_INVALID');
@@ -58,7 +58,7 @@ export function normalizeProviderCorrelation(envelope) {
   if ([...LEGACY_ORIGIN_KEYS].some((key)=>key in payload)) fail('SMPP_ORIGIN_METADATA_INVALID');
   const raw=attributes.correlation;
   if (raw != null && !object(raw)) fail('SMPP_ORIGIN_METADATA_INVALID');
-  const correlation=raw??{};
+  const correlation=object(raw)?raw:{};
   for (const key of ['originRuntimeInstanceId','originTaskId','originInvocationId']) {
     if (key in correlation) fail('SMPP_ORIGIN_METADATA_INVALID');
   }
@@ -70,13 +70,16 @@ export function normalizeProviderCorrelation(envelope) {
   const originDeploymentId=optionalString(correlation.originDeploymentId,'SMPP_ORIGIN_METADATA_INVALID');
   if (hasOriginIds && originSystem===null) fail('SMPP_ORIGIN_SYSTEM_MISSING');
   if (hasOriginIds && originSystem==='sdar' && originDeploymentId===null) fail('SMPP_ORIGIN_DEPLOYMENT_MISSING');
+  const rawAttempt=correlation.attemptNo??attributes.attemptNo;
+  const attemptNo=rawAttempt==null?null:rawAttempt;
+  if(attemptNo!==null&&((typeof attemptNo!=='number'&&typeof attemptNo!=='string')||!Number.isSafeInteger(Number(attemptNo))||Number(attemptNo)<0||(typeof attemptNo==='string'&&!/^\d+$/.test(attemptNo))))fail('SMPP_CORRELATION_ATTEMPT_INVALID');
   return Object.freeze({
-    correlationId: envelope.correlationId ?? correlation.correlationId ?? attributes.correlationId ?? null,
-    causationRecordId: envelope.causationRecordId ?? correlation.causationRecordId ?? attributes.causationRecordId ?? null,
-    traceId: envelope.traceId ?? correlation.traceId ?? attributes.traceId ?? null,
-    spanId: envelope.spanId ?? correlation.spanId ?? attributes.spanId ?? null,
-    routeId: correlation.routeId ?? attributes.routeId ?? null,
-    attemptNo: correlation.attemptNo ?? attributes.attemptNo ?? null,
+    correlationId: optionalString(envelope.correlationId ?? correlation.correlationId ?? attributes.correlationId,'SMPP_CORRELATION_FIELD_INVALID'),
+    causationRecordId: optionalString(envelope.causationRecordId ?? correlation.causationRecordId ?? attributes.causationRecordId,'SMPP_CORRELATION_FIELD_INVALID'),
+    traceId: optionalString(envelope.traceId ?? correlation.traceId ?? attributes.traceId,'SMPP_CORRELATION_FIELD_INVALID'),
+    spanId: optionalString(envelope.spanId ?? correlation.spanId ?? attributes.spanId,'SMPP_CORRELATION_FIELD_INVALID'),
+    routeId: optionalString(correlation.routeId ?? attributes.routeId,'SMPP_CORRELATION_FIELD_INVALID'),
+    attemptNo:attemptNo as string|number|null,
     originSystem,
     originDeploymentId,
     originRuntimeInstanceIds:Object.freeze(originRuntimeInstanceIds),

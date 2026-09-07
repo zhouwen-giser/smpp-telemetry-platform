@@ -21,13 +21,15 @@ services:
         - CMD
         - node
         - -e
-        - "const https=require('https'),fs=require('fs');const request=https.get({hostname:'telemetry-processor',port:8443,path:'/health/live',servername:'telemetry-processor',ca:fs.readFileSync('/run/secrets/processor_server_ca'),cert:fs.readFileSync('/run/secrets/collector_client_cert'),key:fs.readFileSync('/run/secrets/collector_client_key')},response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1));"
+        - "const https=require('https'),fs=require('fs');const request=https.get({hostname:'telemetry-processor',port:8443,path:'/health/ready',servername:'telemetry-processor',ca:fs.readFileSync('/run/secrets/processor_server_ca'),cert:fs.readFileSync('/run/secrets/collector_client_cert'),key:fs.readFileSync('/run/secrets/collector_client_key')},response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1));"
   otel-collector:
     user: "${TELEMETRY_SECRET_UID:-1000}:${TELEMETRY_SECRET_GID:-1000}"
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./telemetry-collector/config/gateway-mtls.yaml:/etc/otelcol-contrib/config.yaml:ro
     secrets:
+      - clickhouse_password
+      - query_api_key
       - runtime_client_ca
       - collector_server_cert
       - collector_server_key

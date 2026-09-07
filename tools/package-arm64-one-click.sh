@@ -49,8 +49,8 @@ package_paths=(
   logs.sh
   package.json
   packages
-  pnpm-lock.yaml
-  pnpm-workspace.yaml
+  package-lock.json
+  reports/smpp-stable-integration/SMPP_TELEMETRY_SOURCE_CAPTURE.json
   reset.sh
   secrets
   status.sh
@@ -61,6 +61,7 @@ package_paths=(
   telemetry-schema
   tools
   tsconfig.json
+  tsconfig.deployment.json
   一键部署说明.md
 )
 

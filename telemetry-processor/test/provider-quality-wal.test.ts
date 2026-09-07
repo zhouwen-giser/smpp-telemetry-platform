@@ -1,34 +1,36 @@
-// @ts-nocheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {isRecord} from '../../packages/telemetry-types/src/index.js';
 import {WalStore} from '../src/packages/wal/wal.js';
 
-async function append(wal,envelope){
-  return wal.appendClassified({
+async function append(wal:WalStore,envelope:ReturnType<typeof event>){
+  const result=await wal.appendClassified({
     sourceSystem:'smpp',recordId:envelope.recordId,recordHash:envelope.recordHash,
     acceptedRecord:{kind:'accepted',sourceSystem:'smpp',envelope},
     conflictRecord:()=>({kind:'conflict',sourceSystem:'smpp',envelope})
   });
+  assert.ok(result.entry);
+  return {...result,entry:result.entry};
 }
-function event(index,overrides={}){
+function event(index:number,overrides:Record<string,unknown>={}){
   return {recordId:`record-${index}`,recordHash:String(index).padStart(64,'0'),recordType:'provider.business_event.source.lifecycle',providerId:'provider-1',instanceId:'instance-1',providerEventId:'event-stream-1',providerEventSequence:index,payload:{currentState:'accepted'},...overrides};
 }
 
-test('WAL preserves sequence gap/out-of-order quality and blocks same-sequence content conflicts',async()=>{
-  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-quality-'))});await wal.initialize();
-  assert.equal((await append(wal,event(1))).entry.record.providerQuality.status,'accepted');
-  assert.deepEqual((await append(wal,event(3))).entry.record.providerQuality.reasonCodes,['SMPP_PROVIDER_EVENT_SEQUENCE_GAP']);
-  assert.deepEqual((await append(wal,event(2))).entry.record.providerQuality.reasonCodes,['SMPP_PROVIDER_EVENT_OUT_OF_ORDER']);
+test('WAL preserves sequence gap/out-of-order quality and blocks same-sequence content conflicts',async(t)=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-quality-'))});await wal.initialize();t.after(()=>wal.close());
+  assert.equal(quality((await append(wal,event(1))).entry.record).status,'accepted');
+  assert.deepEqual(quality((await append(wal,event(3))).entry.record).reasonCodes,['SMPP_PROVIDER_EVENT_SEQUENCE_GAP']);
+  assert.deepEqual(quality((await append(wal,event(2))).entry.record).reasonCodes,['SMPP_PROVIDER_EVENT_OUT_OF_ORDER']);
   const conflict=await append(wal,event(4,{providerEventSequence:3,recordHash:'f'.repeat(64)}));
   assert.equal(conflict.classification,'semantic_conflict');
   assert.equal(conflict.semanticCode,'SMPP_PROVIDER_EVENT_SEQUENCE_CONFLICT');
 });
 
-test('WAL blocks revision and mutually exclusive terminal conflicts',async()=>{
-  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-revision-'))});await wal.initialize();
+test('WAL blocks revision and mutually exclusive terminal conflicts',async(t)=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-revision-'))});await wal.initialize();t.after(()=>wal.close());
   const base={recordType:'provider.task.lifecycle',providerId:'provider-1',instanceId:'instance-1',taskId:'task-1'};
   await append(wal,event(1,{...base,payload:{providerRevision:'7',terminalStatus:'completed'}}));
   const revision=await append(wal,event(2,{...base,payload:{providerRevision:'7'},recordHash:'e'.repeat(64)}));
@@ -37,11 +39,13 @@ test('WAL blocks revision and mutually exclusive terminal conflicts',async()=>{
   assert.equal(terminal.semanticCode,'SMPP_PROVIDER_TERMINAL_CONFLICT');
 });
 
-test('distinct immutable provider events under one task may share an observation revision',async()=>{
-  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-event-identity-'))});await wal.initialize();
+test('distinct immutable provider events under one task may share an observation revision',async(t)=>{
+  const wal=new WalStore({directory:await mkdtemp(join(tmpdir(),'wal-provider-event-identity-'))});await wal.initialize();t.after(()=>wal.close());
   const base={recordType:'provider.resource.state',providerId:'provider-1',instanceId:'instance-1',taskId:'task-1',observationRevision:9};
   const position=await append(wal,event(10,{...base,providerEventId:'position-1'}));
   const mission=await append(wal,event(11,{...base,providerEventId:'mission-1'}));
   assert.equal(position.classification,'new');
   assert.equal(mission.classification,'new');
 });
+
+function quality(record:Record<string,unknown>){assert.ok(isRecord(record.providerQuality));return record.providerQuality;}

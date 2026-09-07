@@ -20,7 +20,8 @@
       "tableMap": {},
       "routeIds": [
         "standalone-smpp"
-      ]
+      ],
+      "snapshotEnabled": true
     },
     {
       "targetId": "sdar-warehouse-shadow",

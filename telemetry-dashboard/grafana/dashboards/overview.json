@@ -1,20 +1,24 @@
 {
-  "title": "SMPP Telemetry Overview",
+  "title": "SMPP simulation telemetry",
   "uid": "smpp-telemetry-overview",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "panels": [
     {
       "type": "table",
       "title": "Provider activity",
       "datasource": {
-        "uid": "clickhouse"
+        "uid": "clickhouse",
+        "type": "grafana-clickhouse-datasource"
       },
       "targets": [
         {
-          "query": "SELECT * FROM telemetry_serving.provider_activity_summary ORDER BY last_occurred_at DESC LIMIT 100",
-          "refId": "A"
+          "refId": "A",
+          "rawSql": "SELECT * FROM telemetry_serving.provider_activity_summary ORDER BY last_occurred_at DESC LIMIT 100",
+          "editorType": "sql",
+          "queryType": "table",
+          "format": 1
         }
       ],
       "gridPos": {
@@ -22,18 +26,23 @@
         "w": 24,
         "x": 0,
         "y": 0
-      }
+      },
+      "id": 1
     },
     {
       "type": "table",
       "title": "SDAR–SMPP topology",
       "datasource": {
-        "uid": "clickhouse"
+        "uid": "clickhouse",
+        "type": "grafana-clickhouse-datasource"
       },
       "targets": [
         {
-          "query": "SELECT * FROM telemetry_serving.sdar_smpp_execution_topology ORDER BY valid_from DESC LIMIT 100",
-          "refId": "A"
+          "refId": "A",
+          "rawSql": "SELECT * FROM telemetry_serving.sdar_smpp_execution_topology ORDER BY valid_from DESC LIMIT 100",
+          "editorType": "sql",
+          "queryType": "table",
+          "format": 1
         }
       ],
       "gridPos": {
@@ -41,27 +50,284 @@
         "w": 24,
         "x": 0,
         "y": 10
-      }
+      },
+      "id": 2
     },
     {
+      "id": 3,
       "type": "timeseries",
-      "title": "SMPP Runtime telemetry audit backlog",
+      "title": "Runtime telemetry audit backlog",
       "datasource": {
-        "uid": "smpp-runtime-prometheus"
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
       },
       "targets": [
         {
-          "expr": "telemetry_audit_backlog",
-          "legendFormat": "{{telemetry_source_runtime_instance_id}}",
-          "refId": "A"
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('telemetry_audit_backlog')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
         "y": 20
       }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Processor storage bytes (WAL / index / archive / DLQ)",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('processor_wal_bytes', 'processor_state_bytes', 'processor_archive_bytes', 'processor_dlq_bytes')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Target pending and quarantined records",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('projection_target_pending', 'projection_target_quarantined', 'projection_target_publication_pending')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Oldest pending record age",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('projection_target_oldest_pending_age_ms')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Processor and Query readiness / scrape availability",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('processor_ready', 'query_ready', 'query_store_ready', 'up')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Projection errors",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_gauge\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('projection_target_error')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Projection failures since process start",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeInterval(TimeUnix) AS time, concat(ResourceAttributes['telemetry.source.deployment_id'], '/', if(ResourceAttributes['service.instance.id'] != '', ResourceAttributes['service.instance.id'], ResourceAttributes['telemetry.source.runtime_instance_id']), '/', MetricName, '/', toString(cityHash64(toJSONString(mapSort(ResourceAttributes)), toJSONString(mapSort(Attributes)), ScopeName, ScopeVersion, toJSONString(mapSort(ScopeAttributes)), MetricUnit))) AS series, argMax(Value, TimeUnix) AS value\nFROM telemetry_observability.otel_metrics_sum\nWHERE $__timeFilter(TimeUnix)\n  AND ResourceAttributes['telemetry.collection.protocol'] = ${protocol:sqlstring}\n  AND (${deployment:sqlstring} = '' OR ResourceAttributes['telemetry.source.deployment_id'] = ${deployment:sqlstring})\n  AND (${runtime:sqlstring} = '' OR ResourceAttributes['service.instance.id'] = ${runtime:sqlstring} OR ResourceAttributes['telemetry.source.runtime_instance_id'] = ${runtime:sqlstring})\n  AND MetricName IN ('projection_target_failures_total')\nGROUP BY time, series\nORDER BY time, series",
+          "editorType": "sql",
+          "queryType": "timeseries",
+          "format": 0
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "No data",
+          "custom": {
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 68
+      }
     }
-  ]
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "deployment",
+        "label": "Deployment (empty = all)",
+        "type": "textbox",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "query": ""
+      },
+      {
+        "name": "runtime",
+        "label": "Runtime (empty = all)",
+        "type": "textbox",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "query": ""
+      },
+      {
+        "name": "protocol",
+        "label": "Collection protocol",
+        "type": "custom",
+        "query": "prometheus,otlp",
+        "current": {
+          "text": "prometheus",
+          "value": "prometheus"
+        }
+      }
+    ]
+  }
 }

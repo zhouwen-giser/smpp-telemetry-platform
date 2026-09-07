@@ -1,3 +1,4 @@
+import type { OtlpJsonAnyValue } from '../src/packages/otlp/otlp-types.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp } from 'node:fs/promises';
@@ -9,14 +10,14 @@ import { TelemetryProcessor } from '../src/apps/processor.js';
 import { createServer } from '../src/apps/server.js';
 import { envelope, mapping } from './helpers.js';
 
-const av = (v) => typeof v === 'string' ? { stringValue: v }
+const av = (v: unknown): OtlpJsonAnyValue => typeof v === 'string' ? { stringValue: v }
   : typeof v === 'boolean' ? { boolValue: v }
   : typeof v === 'number' ? { intValue: String(v) }
   : Array.isArray(v) ? { arrayValue: { values: v.map(av) } }
   : v && typeof v === 'object' ? { kvlistValue: { values: Object.entries(v).map(([key, value]) => ({ key, value: av(value) })) } }
   : { stringValue: '' };
-const attrs = (o) => Object.entries(o).map(([key, value]) => ({ key, value: av(value) }));
-function request(e) {
+const attrs = (o: Record<string, unknown>) => Object.entries(o).map(([key, value]) => ({ key, value: av(value) }));
+function request(e: ReturnType<typeof envelope>) {
   return { resourceLogs: [{ resource: { attributes: attrs({
     'telemetry.source.system': 'smpp',
     'telemetry.source.collector_id': 'smpp-gateway-1',
@@ -39,11 +40,13 @@ test('internal OTLP JSON reaches Processor WAL before success', async () => {
   const targets = { pingRequired: async () => true, statuses: () => [], flush: async () => {} };
   const config = { maxRequestBytes: 1024 * 1024, adminApiKey: '', walMaxBytes: 1024 * 1024 };
   const server = createServer({ config, tlsOptions: null, processor, wal, targets, metrics });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const { port } = address;
   const response = await fetch(`http://127.0.0.1:${port}/internal/otlp/v1/logs`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request(envelope())) });
   assert.equal(response.status, 200);
   assert.equal(wal.entries.length, 1);
-  assert.equal(wal.entries[0].record.kind, 'accepted');
+  assert.equal(wal.entries[0]?.record.kind, 'accepted');
   await new Promise((resolve) => server.close(resolve));
 });

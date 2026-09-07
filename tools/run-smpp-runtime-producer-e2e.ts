@@ -1,4 +1,21 @@
-// @ts-nocheck
+import type { ProviderOpsEnvelope } from '../packages/telemetry-types/src/index.js';
+interface SqlSession { query<Row = Record<string,unknown>>(sql:string, values?:unknown[]):Promise<{rows:Row[]}> }
+interface SqlConnection extends SqlSession { release():void }
+interface SqlPool extends SqlSession { connect():Promise<SqlConnection>; end():Promise<void> }
+interface PoolModule { Pool:new(options:{connectionString:string;max:number;options?:string})=>SqlPool }
+interface TaskRepositoryApi {
+  markAdmissionUncertain(taskId:string,reason:string,operations:string[],now:Date):Promise<unknown>;
+  recordReconciliationResult(taskId:string,result:string,executionId:string|null,retry:boolean,now:Date):Promise<unknown>;
+}
+interface PersistenceModule {
+  runMigrations(pool:SqlPool):Promise<void>;
+  TaskRepository:new(pool:SqlPool)=>TaskRepositoryApi;
+  insertCommittedTaskEvent(client:SqlConnection,taskId:string,type:string,payload:Record<string,unknown>,key:string):Promise<unknown>;
+}
+interface TelemetryModule { ProviderTelemetryIngress:new(pool:SqlPool,identity:{providerId:string;instanceId:string})=>{
+  emit(providerId:string,request:{providerId:string;events:ReturnType<typeof providerEvent>[]}):Promise<{results:{accepted:boolean;reasonCode?:string}[]}>;
+} }
+import type { OtlpJsonAnyValue } from '../telemetry-processor/src/packages/otlp/otlp-types.js';
 import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
@@ -14,9 +31,9 @@ if(!databaseUrl)throw new Error('TEST_DATABASE_URL_REQUIRED');
 const actualCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:producerRepo,encoding:'utf8'}).trim();
 if(actualCommit!==expectedCommit)throw new Error('SMPP_PRODUCER_COMMIT_MISMATCH');
 
-const pg=await import(pathToFileURL(resolve(producerRepo,'node_modules/pg/esm/index.mjs')).href);
-const persistence=await import(pathToFileURL(resolve(producerRepo,'packages/persistence-postgres/src/index.ts')).href);
-const providerTelemetry=await import(pathToFileURL(resolve(producerRepo,'packages/provider-telemetry/src/index.ts')).href);
+const pg: PoolModule=await import(pathToFileURL(resolve(producerRepo,'node_modules/pg/esm/index.mjs')).href);
+const persistence: PersistenceModule=await import(pathToFileURL(resolve(producerRepo,'packages/persistence-postgres/src/index.ts')).href);
+const providerTelemetry: TelemetryModule=await import(pathToFileURL(resolve(producerRepo,'packages/provider-telemetry/src/index.ts')).href);
 const {Pool}=pg;
 const {runMigrations,TaskRepository,insertCommittedTaskEvent}=persistence;
 const {ProviderTelemetryIngress}=providerTelemetry;
@@ -93,11 +110,11 @@ try{
     if(response.results[0]?.accepted!==true)throw new Error(`PRODUCER_TELEMETRY_REJECTED_${response.results[0]?.reasonCode??'UNKNOWN'}`);
   }
 
-  const query=await pool.query('SELECT record_body FROM provider_ops_delivery ORDER BY created_at,record_id');
+  const query=await pool.query<{record_body:ProviderOpsEnvelope}>('SELECT record_body FROM provider_ops_delivery ORDER BY created_at,record_id');
   const envelopes=query.rows.map((row)=>row.record_body);
   const families=new Set(envelopes.map((value)=>
     value.attributes?.semantic??value.attributes?.['sdar.fact.kind']??value.attributes?.['sdar.evidence.kind']??
-    (value.payload?.mcpTaskStatus?'business_terminal':value.recordType)
+    (value.payload && typeof value.payload==='object' && 'mcpTaskStatus' in value.payload ?'business_terminal':value.recordType)
   ));
   for(const required of ['dispatch.uncertainty','task.reconciliation','business_terminal','position','mission','mission_relation']){
     if(!families.has(required))throw new Error(`PRODUCER_SEMANTIC_MISSING_${required}`);
@@ -106,8 +123,9 @@ try{
   if(initial.status!==200)throw new Error(`SMPP_RUNTIME_SYNC_INITIAL_SEND_FAILED_${initial.status}_${initial.body}`);
   const duplicate=await send(envelopes);
   if(duplicate.status!==200)throw new Error(`SMPP_RUNTIME_SYNC_DUPLICATE_SEND_FAILED_${duplicate.status}`);
-  const conflict=structuredClone(envelopes[0]);
-  conflict.payload={...conflict.payload,qualificationConflict:true};
+  const firstEnvelope=envelopes[0];if(!firstEnvelope)throw new Error('PRODUCER_ENVELOPES_EMPTY');
+  const conflict=structuredClone(firstEnvelope);
+  conflict.payload={...(typeof conflict.payload==='object' && conflict.payload!==null?conflict.payload:{}),qualificationConflict:true};
   conflict.recordHash=calculateProviderOpsRecordHash(conflict);
   const conflictResponse=await send([conflict]);
   if(conflictResponse.status<400)throw new Error('SMPP_RUNTIME_SYNC_HASH_CONFLICT_NOT_REJECTED');
@@ -124,7 +142,7 @@ try{
   await admin.end();
 }
 
-function providerEvent(providerEventId,evidenceKind,time,payload,extraAttributes={}){
+function providerEvent(providerEventId:string,evidenceKind:string,time:number,payload:Record<string,unknown>,extraAttributes:Record<string,string>={}){
   return {
     providerEventId,providerEventSequence:evidenceKind==='position'?10:11,
     eventType:'RESOURCE_STATE',resourceId:'vehicle-7',resourceType:'ugv',
@@ -135,19 +153,19 @@ function providerEvent(providerEventId,evidenceKind,time,payload,extraAttributes
   };
 }
 
-async function send(envelopes){
+async function send(envelopes: ProviderOpsEnvelope[]){
   const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(otlp(envelopes))});
   return {status:response.status,body:await response.text()};
 }
 
-function otlp(envelopes){
+function otlp(envelopes: ProviderOpsEnvelope[]){
   return {resourceLogs:[{resource:{attributes:attributes({'service.name':'sdar-mcp-provider-runtime'})},scopeLogs:[{scope:{name:'sdar.provider.ops'},logRecords:envelopes.map((envelope)=>({
     timeUnixNano:String(BigInt(Date.parse(envelope.emittedAt))*1_000_000n),body:anyValue(envelope),
     attributes:attributes({'sdar.record.id':envelope.recordId,'sdar.record.hash':envelope.recordHash,'sdar.schema.name':envelope.schemaName,'sdar.schema.version':envelope.schemaVersion})
   }))}]}]};
 }
-function attributes(value){return Object.entries(value).map(([key,item])=>({key,value:anyValue(item)}));}
-function anyValue(value){
+function attributes(value: object){return Object.entries(value).map(([key,item])=>({key,value:anyValue(item)}));}
+function anyValue(value: unknown): OtlpJsonAnyValue{
   if(typeof value==='string')return {stringValue:value};
   if(typeof value==='boolean')return {boolValue:value};
   if(typeof value==='number')return Number.isInteger(value)?{intValue:String(value)}:{doubleValue:value};

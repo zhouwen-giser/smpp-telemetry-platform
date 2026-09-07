@@ -1,9 +1,13 @@
+import { isRecord, type OtlpLogRecord, type ProviderOpsEnvelope, type TrustedIngressContext, type SourceMappingSnapshot, type CollectResult } from '../../../packages/telemetry-types/src/index.js';
+import type { WalStore } from '../packages/wal/wal.js';
+import type { SourceMappings } from '../packages/source-mapping/source-mapping.js';
+import type { Metrics } from '../packages/metrics/metrics.js';
 import { randomUUID } from 'node:crypto';
 import { validateEnvelope, validateTrustedIngress } from '../packages/validation/validation.js';
 import { restoreSmppRuntimeTransportSemantics } from '../packages/validation/smpp-runtime-semantics.js';
 
-function safeSourceHint(envelope:any):Record<string,string> {
-  if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) return {};
+function safeSourceHint(envelope:unknown):Record<string,string> {
+  if (!isRecord(envelope)) return {};
   const safe:Record<string,string> = {};
   for (const key of ['schemaName','schemaVersion','recordId','recordHash','recordType','providerId','instanceId']) {
     const value = envelope[key];
@@ -13,15 +17,15 @@ function safeSourceHint(envelope:any):Record<string,string> {
 }
 
 export class TelemetryProcessor {
-  wal:any;
-  mappings:any;
-  metrics:any;
+  wal:WalStore;
+  mappings:Pick<SourceMappings,'resolve'>;
+  metrics:Metrics;
   requireCollectorId:boolean;
   allowedCollectorIds:string[];
   walMaxBytes:number;
   walRejectThreshold:number;
 
-  constructor({wal,mappings,metrics,requireCollectorId=true,allowedCollectorIds=[],walMaxBytes=10*1024*1024*1024,walRejectThreshold=0.98}:{wal:any;mappings:any;metrics:any;requireCollectorId?:boolean;allowedCollectorIds?:string[];walMaxBytes?:number;walRejectThreshold?:number}) {
+  constructor({wal,mappings,metrics,requireCollectorId=true,allowedCollectorIds=[],walMaxBytes=10*1024*1024*1024,walRejectThreshold=0.98}:{wal:WalStore;mappings:Pick<SourceMappings,'resolve'>;metrics:Metrics;requireCollectorId?:boolean;allowedCollectorIds?:string[];walMaxBytes?:number;walRejectThreshold?:number}) {
     this.wal=wal;
     this.mappings=mappings;
     this.metrics=metrics;
@@ -31,7 +35,7 @@ export class TelemetryProcessor {
     this.walRejectThreshold=walRejectThreshold;
   }
 
-  async #quarantine({code,message=code,receivedAt,trustedContext,envelope,mapping=null}:{code:string;message?:string;receivedAt:string;trustedContext:any;envelope:any;mapping?:any}) {
+  async #quarantine({code,message=code,receivedAt,trustedContext,envelope,mapping=null}:{code:string;message?:string;receivedAt:string;trustedContext:TrustedIngressContext;envelope:unknown;mapping?:SourceMappingSnapshot|null}) {
     const entry=await this.wal.append({
       kind:'rejected',sourceSystem:'smpp',rejectionId:randomUUID(),receivedAt,trustedContext,
       mapping,errorCode:code,errorSummary:String(message).slice(0,256),sourceHint:safeSourceHint(envelope)
@@ -40,31 +44,32 @@ export class TelemetryProcessor {
     return entry.record.rejectionId;
   }
 
-  #retryableWal(error:unknown) {
+  #retryableWal(error:unknown):CollectResult|null {
     const code=error instanceof Error?error.message:undefined;
-    if(!code||!['WAL_HIGH_WATER','WAL_WRITE_QUEUE_FULL','WAL_WRITE_FAILED_RESTART_REQUIRED'].includes(code)) return null;
+    if(!code||!['WAL_DISK_RESERVE_REQUIRED','WAL_HIGH_WATER','WAL_WRITE_QUEUE_FULL','WAL_WRITE_FAILED_RESTART_REQUIRED'].includes(code)) return null;
     this.metrics.inc('processor_retryable_total',{reason:code});
     return{status:'rejected_retryable',errorCode:code};
   }
 
-  async collect(logRecord:any) {
+  async collect(logRecord:OtlpLogRecord):Promise<CollectResult> {
     this.metrics.inc('processor_received_records_total');
-    const ingress:any=(validateTrustedIngress as any)(logRecord,{requireCollectorId:this.requireCollectorId,allowedCollectorIds:this.allowedCollectorIds});
+    const ingress=validateTrustedIngress(logRecord,{requireCollectorId:this.requireCollectorId,allowedCollectorIds:this.allowedCollectorIds});
     if(!ingress.ok){
       this.metrics.inc('processor_permanent_reject_total',{reason:ingress.code});
       return{status:'rejected_permanent',errorCode:ingress.code};
     }
-    const envelope=restoreSmppRuntimeTransportSemantics(logRecord.body);
+    const restored=restoreSmppRuntimeTransportSemantics(logRecord.body);
     const receivedAt=new Date().toISOString();
-    const validation:any=validateEnvelope(envelope,logRecord.attributes);
+    const validation=validateEnvelope(restored,logRecord.attributes);
     if(!validation.ok){
-      const mapping=this.mappings.resolve({...ingress.context,providerId:typeof envelope?.providerId==='string'?envelope.providerId:'',instanceId:typeof envelope?.instanceId==='string'?envelope.instanceId:'',receivedAt:new Date(receivedAt)});
+      const mapping=this.mappings.resolve({...ingress.context,providerId:isRecord(restored)&&typeof restored.providerId==='string'?restored.providerId:'',instanceId:isRecord(restored)&&typeof restored.instanceId==='string'?restored.instanceId:'',receivedAt:new Date(receivedAt)});
       let rejectionId;
-      try{rejectionId=await this.#quarantine({code:validation.code,message:validation.message,receivedAt,trustedContext:ingress.context,envelope,mapping});}
+      try{rejectionId=await this.#quarantine({code:validation.code,message:validation.message,receivedAt,trustedContext:ingress.context,envelope:restored,mapping});}
       catch(error){const retryable=this.#retryableWal(error);if(retryable)return retryable;throw error;}
       this.metrics.inc('processor_permanent_reject_total',{reason:validation.code});
       return{status:'rejected_permanent',errorCode:validation.code,message:validation.message,rejectionId};
     }
+    const envelope=restored as ProviderOpsEnvelope;
     const mapping=this.mappings.resolve({...ingress.context,providerId:envelope.providerId,instanceId:envelope.instanceId,receivedAt:new Date(receivedAt)});
     if(!mapping){
       let rejectionId;
@@ -79,7 +84,7 @@ export class TelemetryProcessor {
       outcome=await this.wal.appendClassified({
         sourceSystem,recordId:envelope.recordId,recordHash:envelope.recordHash,
         acceptedRecord:{kind:'accepted',sourceSystem,receiptId:randomUUID(),receivedAt,trustedContext:ingress.context,mapping,envelope},
-        conflictRecord:(acceptedRecordHash:string|undefined)=>({kind:'conflict',sourceSystem,receiptId:randomUUID(),receivedAt,trustedContext:ingress.context,mapping,envelope,acceptedRecordHash,summary:'sourceRecordId already exists with a different sourceRecordHash'}),
+        conflictRecord:(acceptedRecordHash:string|undefined)=>({kind:'conflict',sourceSystem,receiptId:randomUUID(),receivedAt,trustedContext:ingress.context,mapping,envelope,...(acceptedRecordHash===undefined?{}:{acceptedRecordHash}),summary:'sourceRecordId already exists with a different sourceRecordHash'}),
         maxTotalBytes:this.walMaxBytes*this.walRejectThreshold
       });
     }catch(error){const retryable=this.#retryableWal(error);if(retryable)return retryable;throw error;}
@@ -92,7 +97,8 @@ export class TelemetryProcessor {
       return{status:'conflict',recordId:envelope.recordId,errorCode:outcome.semanticCode??'RECORD_HASH_CONFLICT'};
     }
     const entry=outcome.entry;
+    if(!entry)throw new Error('WAL_ACCEPTANCE_RESULT_INVALID');
     this.metrics.inc('processor_accepted_records_total');
-    return{status:'accepted',recordId:envelope.recordId,receiptId:entry.record.receiptId,wal:{segment:entry.segment,offset:entry.offset}};
+    return{status:'accepted',recordId:envelope.recordId,receiptId:String(entry.record.receiptId),wal:{segment:entry.segment,offset:entry.offset}};
   }
 }

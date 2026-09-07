@@ -30,12 +30,16 @@ services:
       clickhouse: { condition: service_healthy }
     command: [node, dist/telemetry-schema/tools/migrate.js]
     environment:
+      MIGRATION_LOCK_FILE: /var/lib/smpp-telemetry/migrations/migration.sqlite
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD_FILE: /run/secrets/clickhouse_password
     secrets: [clickhouse_password]
+    volumes: ["migration-state:/var/lib/smpp-telemetry/migrations"]
 
   telemetry-processor:
+    entrypoint: ["/bin/sh", "/run/telemetry/wal-reader-entrypoint.sh"]
+    command: ["node", "dist/telemetry-processor/src/apps/index.js"]
     image: smpp-telemetry-processor:ugv-debug
     build: { context: ., dockerfile: telemetry-processor/Dockerfile }
     restart: unless-stopped
@@ -44,15 +48,24 @@ services:
     environment:
       PROCESSOR_HOST: 0.0.0.0
       PROCESSOR_PORT: "8443"
-      PROCESSOR_ADMIN_API_KEY: ""
+      PROCESSOR_ADMIN_API_KEY: ${PROCESSOR_ADMIN_API_KEY:-}
       PROCESSOR_REQUIRE_COLLECTOR_ID: "true"
       PROCESSOR_ALLOWED_COLLECTOR_IDS: ugv-debug-collector
+      WAL_MIN_READER_VERSION: "2"
       WAL_DIR: /var/lib/smpp-telemetry/wal
+      WAL_MIN_FREE_BYTES: ${WAL_MIN_FREE_BYTES:-67108864}
+      WAL_CACHE_MAX_BYTES: ${WAL_CACHE_MAX_BYTES:-8388608}
+      WAL_ARCHIVE_DIR: ${WAL_ARCHIVE_DIR:-/var/lib/smpp-telemetry/wal/archive}
+      WAL_GC_ENABLED: ${WAL_GC_ENABLED:-false}
+      WAL_MAINTENANCE_INTERVAL_MS: ${WAL_MAINTENANCE_INTERVAL_MS:-60000}
+      REPLAY_TARGETS_FILE: ${REPLAY_TARGETS_FILE:-}
       SOURCE_MAPPINGS_FILE: /app/config/source-mappings.json
       PROJECTION_TARGETS_FILE: /app/config/projection-targets.json
       EXPORT_INTERVAL_MS: "500"
     secrets: [clickhouse_password, sdar_warehouse_password]
     volumes:
+      - ./deploy/wal-reader-guard.mjs:/run/telemetry/wal-reader-guard.mjs:ro
+      - ./deploy/wal-reader-entrypoint.sh:/run/telemetry/wal-reader-entrypoint.sh:ro
       - processor-wal:/var/lib/smpp-telemetry/wal
       - ${UGV_DEBUG_STATE_ROOT:?}/source-mappings.json:/app/config/source-mappings.json:ro
       - ${UGV_DEBUG_STATE_ROOT:?}/projection-targets.json:/app/config/projection-targets.json:ro
@@ -63,7 +76,7 @@ services:
           CMD,
           node,
           -e,
-          "fetch('http://127.0.0.1:8443/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:8443/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 3s
       timeout: 3s
@@ -108,6 +121,9 @@ services:
     environment:
       QUERY_API_HOST: 0.0.0.0
       QUERY_API_PORT: "8088"
+      QUERY_SNAPSHOTS_ENABLED: ${QUERY_SNAPSHOTS_ENABLED:-false}
+      QUERY_READER_REGISTRY_FILE: ${QUERY_READER_REGISTRY_FILE:-}
+      QUERY_SNAPSHOT_TARGET_ID: ${QUERY_SNAPSHOT_TARGET_ID:-standalone-smpp}
       QUERY_API_KEY: ""
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: default
@@ -125,6 +141,7 @@ secrets:
   clickhouse_password:
     file: ${UGV_DEBUG_STATE_ROOT:?}/clickhouse-password
 volumes:
+  migration-state:
   clickhouse-data:
   processor-wal:
   collector-queue:

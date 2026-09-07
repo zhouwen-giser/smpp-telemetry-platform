@@ -13,6 +13,20 @@ receivers:
           static_configs:
             - targets: ["ugv-agent-profile-runtime:8080"]
 
+  prometheus/platform:
+    config:
+      scrape_configs:
+        - job_name: telemetry-processor
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["telemetry-processor:8443"]
+        - job_name: query-api
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["query-api:8088"]
+
 processors:
   memory_limiter:
     check_interval: 1s
@@ -54,6 +68,10 @@ processors:
           - set(attributes["telemetry.channel"], "smpp.provider_ops")
           - set(attributes["telemetry.contract.name"], attributes["sdar.schema.name"])
           - set(attributes["telemetry.contract.version"], attributes["sdar.schema.version"])
+  resource/platform:
+    attributes:
+      - { key: telemetry.collection.protocol, value: prometheus, action: upsert }
+      - { key: telemetry.channel, value: platform.operations, action: upsert }
   resource/otlp:
     attributes:
       - { key: telemetry.collection.protocol, value: otlp, action: upsert }
@@ -151,6 +169,10 @@ service:
       processors:
         [memory_limiter, resource/trusted_ingress, resource/prometheus]
       exporters: [clickhouse/diagnostics, prometheus/smpp_runtime]
+    metrics/platform:
+      receivers: [prometheus/platform]
+      processors: [memory_limiter, resource/trusted_ingress, resource/platform]
+      exporters: [clickhouse/diagnostics]
     traces/otlp:
       receivers: [otlp/smpp]
       processors: [memory_limiter, resource/trusted_ingress, resource/otlp]

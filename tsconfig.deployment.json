@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["deploy/joint-development/**/*.mjs", "deploy/wal-reader-guard.mjs", "tools/qualify-native-arm64-clickhouse.mjs", "tools/check-typecheck*.mjs", "tools/native-arm64-clickhouse-contract*.mjs"],
+  "exclude": ["node_modules", "dist"]
+}

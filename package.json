@@ -2,21 +2,21 @@
   "name": "smpp-telemetry-platform",
   "version": "0.3.0",
   "private": true,
-  "description": "TypeScript SMPP telemetry platform with OpenTelemetry Collector, durable projection outputs, ClickHouse, Query API and Grafana",
+  "description": "Telemetry for SMPP simulation-game control software: OpenTelemetry Collector, WAL, ClickHouse projections and read-only queries; no physical-world or real-device control",
   "type": "module",
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "npm@10.9.8",
   "workspaces": [
     "telemetry-processor",
     "telemetry-dashboard/query-api",
     "packages/*"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.23.1 <23"
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc -p tsconfig.json --noCheck",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "node tools/check-typecheck.mjs && npm run clean && tsc -p tsconfig.json",
+    "typecheck": "node tools/check-typecheck.mjs && tsc -p tsconfig.json --noEmit",
     "start:processor": "node dist/telemetry-processor/src/apps/index.js",
     "start:query-api": "node dist/telemetry-dashboard/query-api/src/index.js",
     "migrate": "node dist/telemetry-schema/tools/migrate.js",
@@ -24,8 +24,18 @@
     "render:source-vector": "node dist/tools/render-source-vector-otlp.js",
     "backfill:v01": "node dist/telemetry-schema/tools/backfill-v01.js",
     "test": "npm run build && node --test dist/telemetry-processor/test/*.test.js dist/telemetry-collector/tests/*.test.js dist/telemetry-dashboard/query-api/test/*.test.js dist/telemetry-schema/tools/*.test.js",
-    "check": "npm run test",
-    "manifest": "npm run build && node dist/tools/create-manifest.js"
+    "check": "npm run test:typecheck && npm run typecheck && npm run check:deployment:types && npm run test && npm run test:deployment && npm run test:arm64-build && npm run test:arm64-contract",
+    "test:typecheck": "node --test tools/check-typecheck.test.mjs",
+    "check:deployment:types": "tsc -p tsconfig.deployment.json",
+    "test:deployment": "node --test deploy/joint-development/*.test.mjs deploy/joint-development/qualification/*.test.mjs",
+    "test:arm64-build": "python3 -m unittest discover -s clickhouse-arm64 -p '*_test.py'",
+    "package:development": "node deploy/joint-development/package.mjs",
+    "manifest": "npm run build && node dist/tools/create-manifest.js",
+    "replay": "node dist/telemetry-processor/src/packages/replay/cli.js",
+    "generation": "node dist/telemetry-processor/src/packages/replay/generation-cli.js",
+    "test:clickhouse": "node dist/tools/qualify-clickhouse.js",
+    "test:arm64-contract": "node --test tools/native-arm64-clickhouse-contract.test.mjs",
+    "package:joint": "node deploy/joint-development/release.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

@@ -25,6 +25,25 @@ test('semantic extraction uses only the per-record catalog and never scans alias
   assert.equal('goalStatus' in semantics,false);
 });
 
+test('scheduler start decisions accept an absent reason without weakening type validation',()=>{
+  assert.deepEqual(
+    extractProviderOpsSemantics('provider.scheduler.decision',{reasonCode:null}),
+    {reasonCode:null}
+  );
+  assert.throws(
+    ()=>extractProviderOpsSemantics('provider.scheduler.decision',{reasonCode:false}),
+    /SMPP_PAYLOAD_CONTRACT_INVALID/
+  );
+});
+
+test('projection accepts source reference arrays already admitted by Runtime semantic validation',()=>{
+  const sourceRecordRefs=Array.from({length:300},(_,index)=>`record-${index}`);
+  assert.deepEqual(
+    extractProviderOpsSemantics('provider.execution.progress',{sourceRecordRefs}),
+    {sourceRecordRefs}
+  );
+});
+
 test('Runtime semantic fixtures pin the producer commit and include fail-closed cases',()=>{
   assert.equal(runtimeFixtures.producerCommit,'1e67e6e421d70a3cbce2d41bf5007e99463712fe');
   assert.equal(runtimeFixtures.valid.length,5);

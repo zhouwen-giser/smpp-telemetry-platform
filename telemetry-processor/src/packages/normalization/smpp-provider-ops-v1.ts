@@ -1,17 +1,21 @@
+import { encodeEntityUrn } from '../../../../packages/telemetry-types/src/urn.js';
+import type { AcceptedWalRecord, ProviderOpsEnvelope } from '../../../../packages/telemetry-types/src/index.js';
+import type { CanonicalFact, EntityRef, EntityRelation, ProviderCorrelation } from './types.js';
+import type { RuntimeSemantic } from '../validation/smpp-runtime-semantics.js';
 import { sha256Canonical, uuidV5 } from '../canonical/canonical.js';
 import { normalizeProviderCorrelation, PROVIDER_CORRELATION_POLICY_ID, PROVIDER_CORRELATION_POLICY_VERSION } from '../validation/provider-correlation-policy.js';
 import { inspectSmppRuntimeSemantic } from '../validation/smpp-runtime-semantics.js';
 
-function requiredIdentity(value, name) {
+function requiredIdentity(value:unknown, name:string):string {
   if (typeof value !== 'string' || value.length === 0) throw new Error(`${name}_REQUIRED`);
   return value;
 }
 
-export function entityUrn({ tenantId, sourceSystem, deploymentId, entityType, localId }) {
-  return `urn:telemetry:${encodeURIComponent(requiredIdentity(tenantId, 'TENANT_ID'))}:${requiredIdentity(sourceSystem, 'SOURCE_SYSTEM')}:${encodeURIComponent(requiredIdentity(deploymentId, 'DEPLOYMENT_ID'))}:${requiredIdentity(entityType, 'ENTITY_TYPE')}:${encodeURIComponent(requiredIdentity(localId, 'LOCAL_ID'))}`;
+export function entityUrn({ tenantId, sourceSystem, deploymentId, entityType, localId }:{tenantId:string;sourceSystem:string;deploymentId:string;entityType:string;localId:string}) {
+  return encodeEntityUrn({tenantId:requiredIdentity(tenantId,'TENANT_ID'),sourceSystem:requiredIdentity(sourceSystem,'SOURCE_SYSTEM'),deploymentId:requiredIdentity(deploymentId,'DEPLOYMENT_ID'),entityType:requiredIdentity(entityType,'ENTITY_TYPE'),entityId:requiredIdentity(localId,'LOCAL_ID')});
 }
 
-function correlationOf(envelope) {
+function correlationOf(envelope:ProviderOpsEnvelope) {
   return normalizeProviderCorrelation(envelope);
 }
 
@@ -23,8 +27,8 @@ const LINEAGE_FIELDS = [
   'recordType','eventCategory','deliveryClass','occurredAt','emittedAt'
 ];
 
-function sourcePayload(envelope, runtimeSemantic) {
-  const payload = {
+function sourcePayload(envelope:ProviderOpsEnvelope, runtimeSemantic:RuntimeSemantic):CanonicalFact['payload'] {
+  const payload:CanonicalFact['payload'] = {
     attributes: envelope.attributes ?? {},
     payload: envelope.payload ?? null,
     runtimeSemantic: {
@@ -42,18 +46,19 @@ function sourcePayload(envelope, runtimeSemantic) {
 }
 
 export class SmppProviderOpsNormalizerV1 {
+  readonly normalizerId:string;readonly normalizerVersion:number;
   constructor() {
     this.normalizerId = 'smpp-provider-ops-v1';
     this.normalizerVersion = 4;
   }
 
-  normalize(entry) {
+  normalize(entry:{record:AcceptedWalRecord}):CanonicalFact[] {
     const { envelope, mapping, receivedAt, trustedContext } = entry.record;
     const deploymentId = requiredIdentity(trustedContext.deploymentId, 'DEPLOYMENT_ID');
     const correlation = correlationOf(envelope);
     const runtimeSemantic = inspectSmppRuntimeSemantic(envelope);
-    const refs = [];
-    const add = (entityType, localId) => {
+    const refs:EntityRef[] = [];
+    const add = (entityType:string, localId:unknown) => {
       if (typeof localId !== 'string' || localId.length === 0) return;
       refs.push({
         entityType,
@@ -70,7 +75,7 @@ export class SmppProviderOpsNormalizerV1 {
       add('device_mission', runtimeSemantic.missionRelation.deviceMissionId);
     }
 
-    const base = {
+    const base:Omit<CanonicalFact,'factHash'> = {
       canonicalEnvelopeVersion: '1.0.0',
       factId: uuidV5(`smpp|${envelope.recordId}|${envelope.recordType}`),
       factType: envelope.recordType,
@@ -120,7 +125,7 @@ export class SmppProviderOpsNormalizerV1 {
     return [{ ...material, factHash: sha256Canonical(stableHashMaterial) }];
   }
 
-  #relations(fact, correlation, refs, deploymentId, runtimeSemantic) {
+  #relations(fact:Omit<CanonicalFact,'factHash'>, correlation:ProviderCorrelation, refs:EntityRef[], deploymentId:string, runtimeSemantic:RuntimeSemantic):EntityRelation[] {
     const relations = this.#originRelations(fact, correlation, refs, deploymentId);
     const task = refs.find((ref) => ref.entityType === 'task')?.urn;
     const execution = refs.find((ref) => ref.entityType === 'execution')?.urn;
@@ -143,14 +148,14 @@ export class SmppProviderOpsNormalizerV1 {
     return [...new Map(relations.map((relation) => [relation.relationId, relation])).values()];
   }
 
-  #originRelations(fact, correlation, refs, deploymentId) {
+  #originRelations(fact:Omit<CanonicalFact,'factHash'>, correlation:ProviderCorrelation, refs:EntityRef[], deploymentId:string):EntityRelation[] {
     if (correlation.originSystem !== 'sdar') return [];
     const targetTask = refs.find((ref) => ref.entityType === 'task')?.urn;
     const targetProvider = refs.find((ref) => ref.entityType === 'provider')?.urn;
     const target = targetTask ?? targetProvider;
     if (!target) return [];
     const originDeploymentId = requiredIdentity(correlation.originDeploymentId, 'ORIGIN_DEPLOYMENT_ID');
-    const relations = [];
+    const relations:EntityRelation[] = [];
     for (const id of correlation.originTaskIds) {
       const source = entityUrn({ tenantId: fact.tenantId, sourceSystem: 'sdar', deploymentId: originDeploymentId, entityType: 'task', localId: id });
       relations.push(this.#relation(fact, source, target, 'invokes', correlation));
@@ -167,8 +172,8 @@ export class SmppProviderOpsNormalizerV1 {
   }
 
   #authoritativeRelation(
-    fact, source, target, type, bindingSource, attemptNo, claimSource, sourceRecordRefs = []
-  ) {
+    fact:Omit<CanonicalFact,'factHash'>, source:string, target:string, type:string, bindingSource:string, attemptNo:number|null, claimSource:string, sourceRecordRefs:string[] = []
+  ):EntityRelation {
     return {
       relationId: uuidV5(`${source}|${target}|${type}|v1`),
       relationType: type,
@@ -207,7 +212,7 @@ export class SmppProviderOpsNormalizerV1 {
     };
   }
 
-  #relation(fact, source, target, type, correlation) {
+  #relation(fact:Omit<CanonicalFact,'factHash'>, source:string, target:string, type:string, correlation:ProviderCorrelation):EntityRelation {
     return {
       relationId: uuidV5(`${fact.factId}|${source}|${target}|${type}`),
       relationType: type,

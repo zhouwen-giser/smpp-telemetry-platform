@@ -1,3 +1,4 @@
+# ProviderOps ACK is synchronous; only metrics/traces use the persistent diagnostic queue.
 receivers:
   otlp/smpp:
     protocols:
@@ -17,14 +18,34 @@ receivers:
     config:
       scrape_configs:
         - job_name: sdar-ugv-runtime
-          scheme: http
-          metrics_path: ${env:SMPP_METRICS_PATH}
           scrape_interval: ${env:SMPP_METRICS_SCRAPE_INTERVAL}
+          metrics_path: ${env:SMPP_METRICS_PATH}
           static_configs:
             - targets: ["${env:SMPP_METRICS_TARGET}"]
 
+  prometheus/platform:
+    config:
+      scrape_configs:
+        - job_name: telemetry-processor
+          scheme: https
+          tls_config:
+            ca_file: /run/secrets/processor_server_ca
+            cert_file: /run/secrets/collector_client_cert
+            key_file: /run/secrets/collector_client_key
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["telemetry-processor:8443"]
+        - job_name: query-api
+          scrape_interval: 15s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["query-api:8088"]
+          authorization:
+            credentials_file: /run/secrets/query_api_key
+
 processors:
-  memory_limiter/provider_ops:
+  memory_limiter:
     check_interval: 1s
     limit_mib: 512
     spike_limit_mib: 128
@@ -39,21 +60,23 @@ processors:
         - 'body == nil or body["schemaName"] != "sdar.provider.ops.event"'
   resource/trusted_ingress:
     attributes:
-      - key: telemetry.source.system
-        value: smpp
-        action: upsert
-      - key: telemetry.source.collector_id
-        value: ${env:COLLECTOR_ID}
-        action: upsert
-      - key: telemetry.source.trust_domain
-        value: ${env:TRUST_DOMAIN}
-        action: upsert
-      - key: telemetry.source.deployment_id
-        value: ${env:SMPP_DEPLOYMENT_ID}
-        action: upsert
-      - key: telemetry.ingress.mode
-        value: gateway-mtls
-        action: upsert
+      - { key: telemetry.source.system, value: smpp, action: upsert }
+      - {
+          key: telemetry.source.collector_id,
+          value: "${env:COLLECTOR_ID}",
+          action: upsert,
+        }
+      - {
+          key: telemetry.source.trust_domain,
+          value: "${env:TRUST_DOMAIN}",
+          action: upsert,
+        }
+      - {
+          key: telemetry.source.deployment_id,
+          value: "${env:SMPP_DEPLOYMENT_ID}",
+          action: upsert,
+        }
+      - { key: telemetry.ingress.mode, value: gateway, action: upsert }
   transform/provider_ops_contract:
     error_mode: propagate
     log_statements:
@@ -62,50 +85,82 @@ processors:
           - set(attributes["telemetry.channel"], "smpp.provider_ops")
           - set(attributes["telemetry.contract.name"], attributes["sdar.schema.name"])
           - set(attributes["telemetry.contract.version"], attributes["sdar.schema.version"])
-  resource/smpp_runtime_metrics:
+  resource/platform:
     attributes:
-      - key: telemetry.source.system
-        value: smpp
-        action: upsert
-      - key: telemetry.channel
-        value: smpp.runtime_metrics
-        action: upsert
-      - key: telemetry.source.deployment_id
-        value: ${env:SMPP_DEPLOYMENT_ID}
-        action: upsert
-      - key: telemetry.source.runtime_instance_id
-        value: ${env:SMPP_RUNTIME_INSTANCE_ID}
-        action: upsert
-      - key: telemetry.source.provider_id
-        value: ${env:SMPP_PROVIDER_ID}
-        action: upsert
+      - { key: telemetry.collection.protocol, value: prometheus, action: upsert }
+      - { key: telemetry.channel, value: platform.operations, action: upsert }
+  resource/otlp:
+    attributes:
+      - { key: telemetry.collection.protocol, value: otlp, action: upsert }
+  resource/prometheus:
+    attributes:
+      - {
+          key: telemetry.collection.protocol,
+          value: prometheus,
+          action: upsert,
+        }
+      - {
+          key: service.name,
+          value: sdar-mcp-tasks-provider-runtime,
+          action: upsert,
+        }
+      - {
+          key: service.instance.id,
+          value: "${env:SMPP_RUNTIME_INSTANCE_ID}",
+          action: upsert,
+        }
+      - { key: sdar.provider.id, value: "${env:SMPP_PROVIDER_ID}", action: upsert }
 
 exporters:
   otlphttp/processor_provider_ops:
     endpoint: https://telemetry-processor:8443/internal/otlp
-    compression: none
-    timeout: 10s
     tls:
       ca_file: /run/secrets/processor_server_ca
       cert_file: /run/secrets/collector_client_cert
       key_file: /run/secrets/collector_client_key
+    compression: none
+    timeout: 10s
     sending_queue:
       enabled: false
     retry_on_failure:
       enabled: false
-  debug/best_effort:
-    verbosity: basic
-  prometheus/smpp_runtime:
-    endpoint: 0.0.0.0:9464
-    resource_to_telemetry_conversion:
+  clickhouse/diagnostics:
+    endpoint: tcp://clickhouse:9000
+    database: telemetry_observability
+    username: default
+    password: "${file:/run/secrets/clickhouse_password}"
+    create_schema: false
+    traces_table_name: otel_traces
+    metrics_tables:
+      gauge: { name: otel_metrics_gauge }
+      sum: { name: otel_metrics_sum }
+      histogram: { name: otel_metrics_histogram }
+      exponential_histogram: { name: otel_metrics_exp_histogram }
+      summary: { name: otel_metrics_summary }
+    async_insert: false
+    timeout: 10s
+    sending_queue:
       enabled: true
+      storage: file_storage/diagnostics
+      queue_size: 1000
+      num_consumers: 2
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 10s
+      max_elapsed_time: 0s
+  prometheus/smpp_runtime:
+    endpoint: "0.0.0.0:9464"
+    resource_to_telemetry_conversion: { enabled: true }
 
 extensions:
-  health_check:
-    endpoint: 0.0.0.0:13133
+  health_check: { endpoint: "0.0.0.0:13133" }
+  file_storage/diagnostics:
+    directory: /var/lib/otelcol/storage
+    create_directory: true
 
 service:
-  extensions: [health_check]
+  extensions: [health_check, file_storage/diagnostics]
   telemetry:
     metrics:
       level: normal
@@ -120,13 +175,28 @@ service:
   pipelines:
     logs/provider_ops:
       receivers: [otlp/smpp]
-      processors: [memory_limiter/provider_ops, filter/provider_ops_only, resource/trusted_ingress, transform/provider_ops_contract]
+      processors:
+        [
+          memory_limiter,
+          filter/provider_ops_only,
+          resource/trusted_ingress,
+          transform/provider_ops_contract,
+        ]
       exporters: [otlphttp/processor_provider_ops]
-    traces/best_effort:
+    metrics/otlp:
       receivers: [otlp/smpp]
-      processors: [memory_limiter/provider_ops]
-      exporters: [debug/best_effort]
-    metrics/smpp_runtime:
-      receivers: [otlp/smpp, prometheus/smpp_runtime]
-      processors: [memory_limiter/provider_ops, resource/smpp_runtime_metrics]
-      exporters: [prometheus/smpp_runtime, debug/best_effort]
+      processors: [memory_limiter, resource/trusted_ingress, resource/otlp]
+      exporters: [clickhouse/diagnostics]
+    metrics/prometheus:
+      receivers: [prometheus/smpp_runtime]
+      processors:
+        [memory_limiter, resource/trusted_ingress, resource/prometheus]
+      exporters: [clickhouse/diagnostics, prometheus/smpp_runtime]
+    metrics/platform:
+      receivers: [prometheus/platform]
+      processors: [memory_limiter, resource/trusted_ingress, resource/platform]
+      exporters: [clickhouse/diagnostics]
+    traces/otlp:
+      receivers: [otlp/smpp]
+      processors: [memory_limiter, resource/trusted_ingress, resource/otlp]
+      exporters: [clickhouse/diagnostics]
