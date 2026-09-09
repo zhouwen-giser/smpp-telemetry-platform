@@ -16,7 +16,7 @@ import { randomBytes } from "node:crypto";
 /** @param {Record<string,string>} env */
 export function generate(
   env,
-  { smpp, telemetry, state, envDir, revision = "development" },
+  { smpp, telemetry, state, envDir, revision = "development", attached = false },
 ) {
   mkdirSync(state, { recursive: true, mode: 0o700 });
   chmodSync(state, 0o700);
@@ -115,7 +115,9 @@ export function generate(
   ];
   if (ids.some((v) => !v || !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,255}$/.test(v)))
     throw Error("EXACT_SOURCE_IDENTITIES_REQUIRED");
-  if (!env.SHARED__URL) throw Error("REQUIRED_CONFIGURATION:SHARED__URL");
+  const sharedEnabled = !attached || Boolean(env.SHARED__URL);
+  if (!attached && !env.SHARED__URL) throw Error("REQUIRED_CONFIGURATION:SHARED__URL");
+  if (sharedEnabled) {
   const sharedUrl = new URL(env.SHARED__URL);
   if (
     !["http:", "https:"].includes(sharedUrl.protocol) ||
@@ -123,8 +125,9 @@ export function generate(
     sharedUrl.password
   )
     throw Error("SHARED_URL_INVALID");
+  }
   const password = secret("CLICKHOUSE__PASSWORD", true),
-    sharedPassword = secret("SHARED__PASSWORD"),
+    sharedPassword = sharedEnabled ? secret("SHARED__PASSWORD") : undefined,
     grafanaPassword = secret("GRAFANA__ADMIN_PASSWORD", true);
   const ports = Object.entries(env)
     .filter(([k]) => k.startsWith("PORT_"))
@@ -171,6 +174,7 @@ export function generate(
     ["runtime", runtime, "DATABASE_URL"],
     ["adapter", adapter, "UGV_ADAPTER_DATABASE_URL"],
   ];
+  if (!attached) {
   for (const [name, values, key] of databases) {
     const url = new URL(values[key]);
     if (
@@ -229,6 +233,7 @@ export function generate(
     condition: "service_started",
   };
   services.adapter.ports = [port("ADAPTER", adapter.ADAPTER_PORT)];
+  }
   services.clickhouse = {
     image: env.CLICKHOUSE_IMAGE,
     restart: "unless-stopped",
@@ -292,7 +297,7 @@ export function generate(
         sourceProduct: "sdar-mcp-provider-platform",
         mappingVersion: 4,
         policyVersion: 2,
-        projectionRouteIds: ["standalone-smpp", "sdar-warehouse-shadow"],
+        projectionRouteIds: sharedEnabled ? ["standalone-smpp", "sdar-warehouse-shadow"] : ["standalone-smpp"],
         status: "active",
         validFrom: "2026-01-01T00:00:00Z",
         validTo: null,
@@ -333,6 +338,7 @@ export function generate(
       },
     ],
   };
+  if (!sharedEnabled) targets.targets = targets.targets.filter(t => t.targetType === "standalone_smpp_clickhouse");
   const mappingFile = processor.SOURCE_MAPPINGS_FILE
     ? file(processor.SOURCE_MAPPINGS_FILE)
     : save("source-mappings.json", mappings);
@@ -402,7 +408,7 @@ export function generate(
   if (!isAbsolute(processor.WAL_DIR)) throw Error("WAL_DIR_MUST_BE_ABSOLUTE");
   const commonMounts = [
     mount(password, "/run/secrets/local-password"),
-    mount(sharedPassword, "/run/secrets/shared-password"),
+    ...(sharedPassword ? [mount(sharedPassword, "/run/secrets/shared-password")] : []),
   ];
   services["wal-init"] = {
     build: telemetryBuild,
@@ -499,6 +505,7 @@ export function generate(
       },
     },
   };
+  if (!sharedEnabled) query.AUTHORITY_ENABLED = "false";
   const queryFiles = volumeFiles(query);
   if (!query.QUERY_CURSOR_KEY && !query.QUERY_CURSOR_KEY_FILE) {
     const cursorKeyFile = secret("QUERY__QUERY_CURSOR_KEY", true);
@@ -519,9 +526,11 @@ export function generate(
     command: ["node", "dist/telemetry-dashboard/query-api/src/index.js"],
     environment: {
       ...queryLocalConnection,
-      AUTHORITY_CLICKHOUSE_URL: env.SHARED__URL,
-      AUTHORITY_CLICKHOUSE_USER: env.SHARED__USER,
-      AUTHORITY_CLICKHOUSE_PASSWORD_FILE: "/run/secrets/shared-password",
+      ...(sharedEnabled ? {
+        AUTHORITY_CLICKHOUSE_URL: env.SHARED__URL,
+        AUTHORITY_CLICKHOUSE_USER: env.SHARED__USER,
+        AUTHORITY_CLICKHOUSE_PASSWORD_FILE: "/run/secrets/shared-password",
+      } : { AUTHORITY_ENABLED: "false" }),
       ...query,
     },
     volumes: [...commonMounts, ...queryFiles],
@@ -629,7 +638,7 @@ export function generate(
         "processor-wal",
         "grafana-data",
         "collector-queue",
-      ].map((v) => [v, {}]),
+      ].filter(v => !attached || !["runtime-db", "adapter-db", "runtime-state", "adapter-state"].includes(v)).map((v) => [v, {}]),
     ),
   };
 }

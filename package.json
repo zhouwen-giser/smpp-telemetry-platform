@@ -27,7 +27,7 @@
     "check": "npm run test:typecheck && npm run typecheck && npm run check:deployment:types && npm run test && npm run test:deployment && npm run test:arm64-build && npm run test:arm64-contract",
     "test:typecheck": "node --test tools/check-typecheck.test.mjs",
     "check:deployment:types": "tsc -p tsconfig.deployment.json",
-    "test:deployment": "node --test deploy/joint-development/*.test.mjs deploy/joint-development/qualification/*.test.mjs",
+    "test:deployment": "node --test deploy/joint-development/*.test.mjs deploy/joint-development/qualification/*.test.mjs deploy/united-telemetry/*.test.mjs",
     "test:arm64-build": "python3 -m unittest discover -s clickhouse-arm64 -p '*_test.py'",
     "package:development": "node deploy/joint-development/package.mjs",
     "manifest": "npm run build && node dist/tools/create-manifest.js",
@@ -35,7 +35,8 @@
     "generation": "node dist/telemetry-processor/src/packages/replay/generation-cli.js",
     "test:clickhouse": "node dist/tools/qualify-clickhouse.js",
     "test:arm64-contract": "node --test tools/native-arm64-clickhouse-contract.test.mjs",
-    "package:joint": "node deploy/joint-development/release.mjs"
+    "package:joint": "python3 deploy/united-telemetry/package.py",
+    "package:joint-legacy": "node deploy/joint-development/release.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.1",

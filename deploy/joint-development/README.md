@@ -59,12 +59,16 @@ bash deploy.sh up
 
 Collector ACK 不等于 Processor accepted，Processor readiness 不等于投影追尾。验收分别检查 WAL、两个 target 的 checkpoint/pending/lastError，再查投影事实；不因服务启动合成 Task/Execution/Mission。
 
-## 生成联合交付包
+## 新版联合包集成
+
+`npm run package:joint -- --upstream /path/to/smpp-gowm-gdps-gsap-VERSION.tar.gz` 现将本项目集成到 GOWM/GDPS/GSAP/SMPP 联合包，复用其 Runtime 和 GOWM 业务存储。操作与边界见 [新版集成说明](../united-telemetry/README.md)。
+
+## 旧版独立联合交付包
 
 在 Telemetry 仓库执行以下命令，将当前 SMPP 与 Telemetry 工作区源码打包，并在临时解包目录自动完成配置检查、`npm ci` 和 `npm run check`：
 
 ```bash
-npm run package:joint -- \
+npm run package:joint-legacy -- \
   --smpp ../sdar-mcp-provider-platform \
   --output artifacts/joint-development/my-release \
   --clickhouse-image smpp-clickhouse-qualified:25.3.14.1-42ebc5b1

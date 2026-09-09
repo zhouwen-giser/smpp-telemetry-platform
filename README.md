@@ -78,3 +78,7 @@ npm run test:deployment
 
 - `docs/SMPP_遥测平台中文使用说明.md`
 - `docs/IMPLEMENTATION_PLAN_V0.3.0.md`
+
+## 新版 GOWM 联合部署包
+
+使用 `npm run package:joint -- --upstream /path/to/smpp-gowm-gdps-gsap-VERSION.tar.gz`，将 Telemetry 集成到已有 GOWM/GDPS/GSAP/SMPP 联合包。复用 GOWM 业务数据库和现有 SMPP，仅新增遥测服务。详见 [联合包集成说明](deploy/united-telemetry/README.md)。

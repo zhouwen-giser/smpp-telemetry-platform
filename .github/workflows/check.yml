@@ -19,7 +19,7 @@ jobs:
       # Joint deployment behavior also needs the adjacent SMPP source repository.
       # Its explicit local gate is npm run test:deployment in the paired workspace.
       - run: npm run typecheck && npm run check:deployment:types && npm test
-      - run: node --test deploy/joint-development/qualification/*.test.mjs
+      - run: node --test deploy/joint-development/qualification/*.test.mjs deploy/united-telemetry/*.test.mjs
       - run: npm run test:arm64-build
       - run: npm run test:arm64-contract
       - run: npm run test:clickhouse
